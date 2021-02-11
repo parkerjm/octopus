@@ -26,6 +26,23 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+config :octopus, Oban,
+  repo: Octopus.Repo,
+  plugins: [
+    {Oban.Plugins.Pruner, max_age: 3600},
+    {Oban.Plugins.Cron, crontab: [{"* * * * *", Octopus.Connector.Delighted}]}
+  ],
+  queues: [default: 10]
+
+config :octopus, delighted_client: Octopus.Client.Delighted
+config :octopus, :delighted, api_key: "fake"
+
+config :octopus, warehouse: Octopus.Sink.Warehouse
+
+config :logger, :console, format: "$time $metadata[$level] $message\n"
+
+config :tesla, adapter: Tesla.Adapter.Hackney
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

@@ -5,7 +5,7 @@ defmodule Octopus.MixProject do
     [
       app: :octopus,
       version: "0.1.0",
-      elixir: "~> 1.7",
+      elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -35,8 +35,6 @@ defmodule Octopus.MixProject do
     [
       {:phoenix, "~> 1.5.7"},
       {:phoenix_ecto, "~> 4.1"},
-      {:ecto_sql, "~> 3.4"},
-      {:postgrex, ">= 0.0.0"},
       {:phoenix_live_view, "~> 0.15.0"},
       {:floki, ">= 0.27.0", only: :test},
       {:phoenix_html, "~> 2.11"},
@@ -46,7 +44,18 @@ defmodule Octopus.MixProject do
       {:telemetry_poller, "~> 0.4"},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"}
+      {:plug_cowboy, "~> 2.0"},
+      {:ecto_sql, "~> 3.5"},
+      {:postgrex, "~> 0.15.0"},
+      {:myxql, "~> 0.4.0"},
+      {:tesla, "~> 1.4.0"},
+      {:hackney, "~> 1.16.0"},
+      {:recase, "~> 0.5"},
+      {:oban, "~> 2.4.2"},
+      {:telemetry, "~> 0.4"},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
+      {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 

@@ -7,20 +7,17 @@ defmodule Octopus.Application do
 
   def start(_type, _args) do
     children = [
-      # Start the Ecto repository
       Octopus.Repo,
-      # Start the Telemetry supervisor
       OctopusWeb.Telemetry,
-      # Start the PubSub system
       {Phoenix.PubSub, name: Octopus.PubSub},
-      # Start the Endpoint (http/https)
-      OctopusWeb.Endpoint
-      # Start a worker by calling: Octopus.Worker.start_link(arg)
-      # {Octopus.Worker, arg}
+      OctopusWeb.Endpoint,
+      Octopus.Repo.ListingsPortal,
+      {Oban, oban_config()}
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
+    :telemetry.attach_many("oban-logger", oban_events(), &Octopus.ObanLogger.handle_event/4, [])
+    :ok = Oban.Telemetry.attach_default_logger()
+
     opts = [strategy: :one_for_one, name: Octopus.Supervisor]
     Supervisor.start_link(children, opts)
   end
@@ -30,5 +27,17 @@ defmodule Octopus.Application do
   def config_change(changed, _new, removed) do
     OctopusWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  defp oban_config do
+    Application.get_env(:octopus, Oban)
+  end
+
+  defp oban_events do
+    [
+      [:oban, :job, :start],
+      [:oban, :job, :stop],
+      [:oban, :job, :exception]
+    ]
   end
 end
