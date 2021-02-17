@@ -1,5 +1,5 @@
 defmodule Octopus.Connector.Delighted do
-  use Oban.Worker, queue: :default
+  use Oban.Worker
   alias Octopus.ConnectorHistory
 
   @results_per_page 100

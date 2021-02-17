@@ -1,7 +1,7 @@
 defmodule Octopus.ConnectorHistory do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Octopus.{Repo, Connector}
+  alias Octopus.Repo
 
   schema "connector_history" do
     field(:connector, :string)

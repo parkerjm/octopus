@@ -11,7 +11,7 @@ defmodule Octopus.Application do
       OctopusWeb.Telemetry,
       {Phoenix.PubSub, name: Octopus.PubSub},
       OctopusWeb.Endpoint,
-      Octopus.Repo.ListingsPortal,
+      # Octopus.Repo.ListingsPortal,
       {Oban, oban_config()}
     ]
 

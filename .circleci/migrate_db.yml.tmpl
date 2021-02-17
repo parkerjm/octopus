@@ -1,0 +1,18 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: $JOB
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+      - name: dhub-ccdevs
+      containers:
+      - name: $JOB
+        image: crownandcaliber/smart-quote:$IMAGE_TAG
+        envFrom:
+        - configMapRef:
+            name: smart-quote-$APP_ENV
+        command: ["bundle", "exec", "rake", "db:migrate"]
+      restartPolicy: Never
+  backoffLimit: 1

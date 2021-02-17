@@ -1,0 +1,192 @@
+version: 2.1
+
+###########################################################
+
+orbs:
+  aws-eks: circleci/aws-eks@0.2.3
+
+###########################################################
+
+jobs:
+  build_image:
+    docker:
+      - image: circleci/ruby:2.7.1-node-browsers
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "33:a0:a6:5a:6b:98:71:29:e9:10:15:fc:80:ec:3a:55"
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - attach_workspace:
+          at: .
+      - run: |
+          IMAGE=crownandcaliber/smart-quote:$CIRCLE_SHA1
+          LATEST=crownandcaliber/smart-quote:latest
+          docker build --build-arg SSH_KEY="$(cat ~/.ssh/id_rsa_33a0a65a6b987129e91015fc80ec3a55)" -t $IMAGE -t $LATEST .
+          docker login -u $DOCKER_USER -p $DOCKER_PASS
+          docker push $IMAGE
+          docker push $LATEST
+
+  build:
+    docker:
+      - image: circleci/ruby:2.7.1-node-browsers
+        environment:
+          BUNDLER_VERSION: 2.0.1
+          RAILS_ENV: test
+
+      - image: circleci/postgres:9.6
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_DB: smart_quote_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "Gemfile.lock" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            gem update --system
+            gem install bundler
+            bundle install --jobs=4 --retry=3 --path vendor/bundle
+            bundle exec rake cc:ops:generate_deploy_info
+      - persist_to_workspace:
+          root: .
+          paths:
+            - DEPLOY_INFO
+      - save_cache:
+          paths:
+            - ./vendor/bundle
+          key: v1-dependencies-{{ checksum "Gemfile.lock" }}
+      - run:
+          name: rubocop
+          command: |
+            bundle exec rubocop
+      - run:
+          name: setup database
+          command: bundle exec rake db:create db:schema:load
+      - run:
+          name: run tests
+          command: |
+            mkdir /tmp/test-results
+            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
+              circleci tests split --split-by=timings)"
+
+            bundle exec rspec \
+              --format progress \
+              --format RspecJunitFormatter \
+              --out /tmp/test-results/rspec.xml \
+              --format progress \
+              $TEST_FILES
+      # collect reports
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: test-results
+
+  migrate_staging_db:
+    docker:
+      - image: circleci/ruby:2.7.1-node-browsers
+    steps:
+      - checkout
+      - aws-eks/update-kubeconfig-with-authenticator:
+          aws-region: us-east-2
+          cluster-name: staging
+          install-kubectl: true
+      - run:
+          name: migrate staging database
+          command: |
+            IMAGE_TAG=$CIRCLE_SHA1 \
+            APP_ENV=staging \
+            JOB=smart-quote-$APP_ENV-db-migration \
+            ./.circleci/run_migration.sh
+
+  migrate_production_db:
+    docker:
+      - image: circleci/ruby:2.7.1-node-browsers
+    steps:
+      - checkout
+      - aws-eks/update-kubeconfig-with-authenticator:
+          aws-region: us-east-2
+          cluster-name: prod
+          install-kubectl: true
+      - run:
+          name: migrate production database
+          command: |
+            IMAGE_TAG=$CIRCLE_SHA1 \
+            APP_ENV=production \
+            JOB=smart-quote-$APP_ENV-db-migration \
+            ./.circleci/run_migration.sh
+
+###########################################################
+
+workflows:
+  build_and_deploy:
+    jobs:
+      - build
+      - build_image:
+          requires:
+            - build
+      - deploy_staging:
+          name: Deploy to staging
+          type: approval
+          requires:
+            - build_image
+      - migrate_staging_db:
+          name: Migrate Staging Database
+          requires:
+            - Deploy to staging
+      - aws-eks/update-container-image:
+          name: Staging Deploy
+          requires:
+            - Migrate Staging Database
+          aws-region: us-east-2
+          cluster-name: staging
+          resource-name: deployment.v1.apps/smart-quote-staging
+          container-image-updates: smart-quote=crownandcaliber/smart-quote:$CIRCLE_SHA1 smart-quote-delayed-job=crownandcaliber/smart-quote:$CIRCLE_SHA1
+          record: true
+      - deploy_prod:
+          name: Deploy to prod
+          type: approval
+          requires:
+            - build_image
+          filters:
+            branches:
+              only:
+                - master
+                - /hotfix-.*/
+      - safety_check:
+          name: Are you sure?
+          type: approval
+          requires:
+            - Deploy to prod
+          filters:
+            branches:
+              only:
+                - master
+                - /hotfix-.*/
+      - migrate_production_db:
+          name: Migrate Prod Database
+          requires:
+            - Are you sure?
+      - aws-eks/update-container-image:
+          name: Production Deploy
+          requires:
+            - Migrate Prod Database
+          filters:
+            branches:
+              only:
+                - master
+                - /hotfix-.*/
+          aws-region: us-east-2
+          cluster-name: prod
+          resource-name: deployment.v1.apps/smart-quote-production
+          container-image-updates: smart-quote=crownandcaliber/smart-quote:$CIRCLE_SHA1 smart-quote-delayed-job=crownandcaliber/smart-quote:$CIRCLE_SHA1
+          record: true
