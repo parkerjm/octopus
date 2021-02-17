@@ -11,7 +11,6 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-
 unique_opts = [
   period: 60 * 60 * 24,
   states: [:available, :scheduled, :executing]
@@ -21,7 +20,8 @@ config :octopus, Oban,
   repo: Octopus.Repo,
   plugins: [
     {Oban.Plugins.Pruner, max_age: 3600},
-    {Oban.Plugins.Cron, crontab: [{"*/15 * * * *", Octopus.Connector.Delighted, unique: unique_opts}]}
+    {Oban.Plugins.Cron,
+     crontab: [{"*/15 * * * *", Octopus.Connector.Delighted, unique: unique_opts}]}
   ],
   queues: [default: 10]
 

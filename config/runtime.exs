@@ -6,7 +6,7 @@ if config_env() == :prod do
     url: [host: "localhost", port: 8080],
     cache_static_manifest: "priv/static/cache_manifest.json",
     http: [
-      port: String.to_integer(System.fetch_env!("PORT") || "8080"),
+      port: String.to_integer(System.get_env("PORT") || "8080"),
       transport_options: [socket_opts: [:inet6]]
     ],
     server: true,
@@ -23,5 +23,6 @@ if config_env() == :prod do
 
   config :octopus, :delighted,
     api_key: System.fetch_env!("DELIGHTED_API_KEY"),
-    timeout_between_requests: System.fetch_env!("DELIGHTED_TIMEOUT_BETWEEN_REQUESTS")
+    timeout_between_requests:
+      String.to_integer(System.fetch_env!("DELIGHTED_TIMEOUT_BETWEEN_REQUESTS"))
 end

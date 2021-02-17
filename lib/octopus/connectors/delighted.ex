@@ -1,5 +1,6 @@
 defmodule Octopus.Connector.Delighted do
   use Oban.Worker
+  require Logger
   alias Octopus.ConnectorHistory
 
   @results_per_page 100

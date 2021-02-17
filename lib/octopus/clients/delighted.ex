@@ -5,6 +5,7 @@ defmodule Octopus.Client.Delighted do
   plug(Tesla.Middleware.BaseUrl, "https://api.delighted.com/v1/")
   plug(Tesla.Middleware.Headers, [{"authorization", "Basic #{basic_auth_creds()}"}])
   plug(Tesla.Middleware.JSON)
+  plug(Tesla.Middleware.Logger)
 
   @impl true
   def get_survey_responses(updated_since \\ 0, per_page \\ 100) do

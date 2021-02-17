@@ -1,6 +1,8 @@
 defmodule Octopus.Sink.Warehouse do
   @behaviour Octopus.Sink
 
+  @max_column_length 500
+
   @impl true
   def store(data, table) do
     data
@@ -33,7 +35,7 @@ defmodule Octopus.Sink.Warehouse do
 
   defp create_table(table, columns) do
     columns
-    |> Enum.map(fn col -> "#{col} varchar(255)" end)
+    |> Enum.map(fn col -> "#{col} varchar(#{@max_column_length})" end)
     |> Enum.join(",")
     |> (&Octopus.Repo.query!("CREATE TABLE #{table} (#{&1});")).()
   end
@@ -42,7 +44,7 @@ defmodule Octopus.Sink.Warehouse do
 
   defp create_columns(table, columns) do
     columns
-    |> Enum.map(fn col -> "ADD COLUMN #{col} varchar(255)" end)
+    |> Enum.map(fn col -> "ADD COLUMN #{col} varchar(#{@max_column_length})" end)
     |> Enum.join(",")
     |> (&Octopus.Repo.query!("ALTER TABLE #{table} #{&1};")).()
   end
@@ -50,13 +52,33 @@ defmodule Octopus.Sink.Warehouse do
   defp persist(changeset, table) do
     cols = changeset |> Map.keys() |> Enum.join(",")
     vals = changeset |> Map.values() |> Enum.map(&map_value/1) |> Enum.join(",")
+
     Octopus.Repo.query!("INSERT INTO #{table} (#{cols}) VALUES (#{vals});")
   end
 
   defp map_value(nil), do: "''"
 
-  defp map_value(val),
-    do: "'#{val |> to_string |> String.replace("'", "''") |> String.slice(0, 254)}'"
+  ###
+  # transformations:
+  # 1) convert all single quotes to double single quotes to meet Postgres syntax
+  # 2) remove all whitespace chars (newlines, tabs, etc.) with spaces as these will be inserted as two chars (i.e. "\r") in the database
+  # 3) trim string to max length of 500
+  # 4) if the last character of the result is a single quote, this will create an invalid query due to unbalanced quotes, so trim it off
+  # 5) finally, wrap the result in single quotes to meet Postgres syntax
+  ###
+  defp map_value(val) do
+    "'#{
+      val
+      |> to_string
+      |> String.replace("'", "''")
+      |> String.replace(~r/\s+/, " ")
+      |> String.slice(0, @max_column_length)
+      |> (&if(String.at(&1, @max_column_length - 1) == "'",
+            do: String.slice(&1, 0, @max_column_length - 1),
+            else: &1
+          )).()
+    }'"
+  end
 
   defp field_names(changeset, cols) do
     changeset |> Map.keys() |> Enum.map(&to_string/1) |> Kernel.++(cols)
