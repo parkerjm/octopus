@@ -91,7 +91,7 @@ defmodule Octopus.Sink.WarehouseTest do
           ],
           "permissions": ["read", "write"],
           "long_field": "#{String.duplicate("a\\r", 999)}",
-          "comment_ending_with_single_quote": "#{String.duplicate("a", 499) <> "''"}"
+          "comment_with_trailing_single_quotes": "#{"a" <> String.duplicate("'", 498)}"
         }
         ]
       """
@@ -111,7 +111,7 @@ defmodule Octopus.Sink.WarehouseTest do
         {"cars_1_features_2_engine_1_liters", "0.049"},
         {"cars_1_features_3_drive_on", "road"},
         {"cars_1_name", "Peel P50"},
-        {"comment_ending_with_single_quote", String.duplicate("a", 499)},
+        {"comment_with_trailing_single_quotes", "a"},
         {"long_field", String.duplicate("a ", 250)},
         {"owner_created_at", "494039300"},
         {"owner_name", "James"},

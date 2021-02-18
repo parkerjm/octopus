@@ -58,26 +58,21 @@ defmodule Octopus.Sink.Warehouse do
 
   defp map_value(nil), do: "''"
 
-  ###
+  ##
   # transformations:
   # 1) convert all single quotes to double single quotes to meet Postgres syntax
-  # 2) remove all whitespace chars (newlines, tabs, etc.) with spaces as these will be inserted as two chars (i.e. "\r") in the database
+  # 2) remove all whitespace chars with spaces as these can be inserted as two chars (i.e. "\r") in the database
   # 3) trim string to max length of 500
-  # 4) if the last character of the result is a single quote, this will create an invalid query due to unbalanced quotes, so trim it off
+  # 4) strip trailing single quotes since they are not useful information and can violate Postgres query syntax
   # 5) finally, wrap the result in single quotes to meet Postgres syntax
-  ###
   defp map_value(val) do
-    "'#{
-      val
-      |> to_string
-      |> String.replace("'", "''")
-      |> String.replace(~r/\s+/, " ")
-      |> String.slice(0, @max_column_length)
-      |> (&if(String.at(&1, @max_column_length - 1) == "'",
-            do: String.slice(&1, 0, @max_column_length - 1),
-            else: &1
-          )).()
-    }'"
+    val
+    |> to_string
+    |> String.replace("'", "''")
+    |> String.replace(~r/\s+/, " ")
+    |> String.slice(0, @max_column_length)
+    |> String.replace(~r/'+$/, "")
+    |> (&"'#{&1}'").()
   end
 
   defp field_names(changeset, cols) do
