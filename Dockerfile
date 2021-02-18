@@ -46,7 +46,6 @@ COPY . .
 
 RUN rm -rf assets/node_modules
 RUN npm install --prefix ./assets
-RUN npm rebuild node-sass
 RUN npm run deploy --prefix ./assets
 
 FROM base AS builder

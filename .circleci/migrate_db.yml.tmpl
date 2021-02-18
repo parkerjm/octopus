@@ -9,10 +9,10 @@ spec:
       - name: dhub-ccdevs
       containers:
       - name: $JOB
-        image: crownandcaliber/smart-quote:$IMAGE_TAG
+        image: crownandcaliber/octopus:$IMAGE_TAG
         envFrom:
         - configMapRef:
-            name: smart-quote-$APP_ENV
-        command: ["bundle", "exec", "rake", "db:migrate"]
+            name: octopus-$APP_ENV
+        command: ["mix", "ecto.migrate"]
       restartPolicy: Never
   backoffLimit: 1
