@@ -12,16 +12,13 @@ jobs:
     docker:
       - image: cimg/elixir:1.11.3-node
     steps:
-      - add_ssh_keys:
-          fingerprints:
-            - "33:a0:a6:5a:6b:98:71:29:e9:10:15:fc:80:ec:3a:55"
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
       - run: |
           IMAGE=crownandcaliber/octopus:$CIRCLE_SHA1
           LATEST=crownandcaliber/octopus:latest
-          docker build --build-arg SSH_KEY="$(cat ~/.ssh/id_rsa_33a0a65a6b987129e91015fc80ec3a55)" -t $IMAGE -t $LATEST .
+          docker build -t $IMAGE -t $LATEST .
           docker login -u $DOCKER_USER -p $DOCKER_PASS
           docker push $IMAGE
           docker push $LATEST
