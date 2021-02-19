@@ -2,6 +2,7 @@ import Config
 
 if config_env() == :prod do
   config :octopus, OctopusWeb.Endpoint,
+    url: [host: System.fetch_env!("HOSTNAME"), port: 80],
     http: [
       port: String.to_integer(System.get_env("PORT") || "8080"),
       transport_options: [socket_opts: [:inet6]]
