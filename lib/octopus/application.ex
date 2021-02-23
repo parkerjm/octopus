@@ -18,6 +18,8 @@ defmodule Octopus.Application do
     :telemetry.attach_many("oban-logger", oban_events(), &Octopus.ObanLogger.handle_event/4, [])
     :ok = Oban.Telemetry.attach_default_logger()
 
+    Code.compiler_options(ignore_module_conflict: true)
+
     opts = [strategy: :one_for_one, name: Octopus.Supervisor]
     Supervisor.start_link(children, opts)
   end

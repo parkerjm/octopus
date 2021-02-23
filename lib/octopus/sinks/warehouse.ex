@@ -8,6 +8,7 @@ defmodule Octopus.Sink.Warehouse do
     data
     |> Enum.map(&generate_changesets/1)
     |> refresh_table_schema(table)
+    |> refresh_ecto_schema(table)
     |> Enum.each(fn changeset -> persist(changeset, table) end)
 
     data
@@ -31,6 +32,10 @@ defmodule Octopus.Sink.Warehouse do
     changesets
   end
 
+  defp field_names(changeset, cols) do
+    changeset |> Map.keys() |> Enum.map(&to_string/1) |> Kernel.++(cols)
+  end
+
   defp create_table(_table, []), do: :ok
 
   defp create_table(table, columns) do
@@ -49,9 +54,47 @@ defmodule Octopus.Sink.Warehouse do
     |> (&Octopus.Repo.query!("ALTER TABLE #{table} #{&1};")).()
   end
 
+  # TODO test
+  # current: recreate module entirely on the fly
+  # option: create modules one time, update schema on the fly? gets rid of warnings
+  # Module.eval_quoted ^
+  defp refresh_ecto_schema(changesets, table) do
+    module = table |> Recase.to_pascal() |> (&Module.concat([Octopus, &1])).()
+
+    fields =
+      changesets
+      |> Enum.reduce([], &field_names/2)
+      |> Enum.uniq()
+      |> remove_existing_fields(module)
+
+    contents =
+      quote do
+        use Ecto.Schema
+
+        @primary_key {:id, :string, []}
+        schema unquote(table) do
+          for field_name <- unquote(fields), do: field(String.to_atom(field_name), :string)
+        end
+      end
+
+    Module.create(module, contents, Macro.Env.location(__ENV__))
+
+    changesets
+  end
+
+  defp remove_existing_fields(fields, module) do
+    fields --
+      case Code.ensure_compiled(module) do
+        {:module, _} -> module.__schema__(:fields) |> Enum.map(&to_string/1)
+        _ -> ["id"]
+      end
+  end
+
   defp persist(changeset, table) do
     cols = changeset |> Map.keys() |> Enum.join(",")
     vals = changeset |> Map.values() |> Enum.map(&map_value/1) |> Enum.join(",")
+
+    # check existing
 
     Octopus.Repo.query!("INSERT INTO #{table} (#{cols}) VALUES (#{vals});")
   end
@@ -75,10 +118,6 @@ defmodule Octopus.Sink.Warehouse do
     |> (&"'#{&1}'").()
   end
 
-  defp field_names(changeset, cols) do
-    changeset |> Map.keys() |> Enum.map(&to_string/1) |> Kernel.++(cols)
-  end
-
   defp generate_changesets(data, prefixes \\ []) when is_map(data) do
     data
     |> Map.keys()
@@ -88,6 +127,7 @@ defmodule Octopus.Sink.Warehouse do
           generate_changesets(data[field], prefixes ++ [field])
           |> Map.merge(changeset)
 
+        # TODO what if first is a number? can json have number lists?
         is_list(data[field]) && data[field] |> List.first() |> is_binary() ->
           data[field]
           |> Enum.join(", ")
