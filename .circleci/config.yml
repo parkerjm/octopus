@@ -81,7 +81,7 @@ jobs:
 
   migrate_production_db:
     docker:
-      - image: cimg/python
+      - image: cimg/python:3.7
     steps:
       - checkout
       - aws-eks/update-kubeconfig-with-authenticator:

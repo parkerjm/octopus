@@ -16,5 +16,8 @@ if config_env() == :prod do
     hostname: System.fetch_env!("DATABASE_HOST"),
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
-  config :octopus, :delighted, api_key: System.fetch_env!("DELIGHTED_API_KEY")
+  config :octopus, :delighted,
+    api_key: System.fetch_env!("DELIGHTED_API_KEY"),
+    timeout_between_requests:
+      String.to_integer(System.fetch_env!("DELIGHTED_TIMEOUT_BETWEEN_REQUESTS"))
 end
