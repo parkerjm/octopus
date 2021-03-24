@@ -2,18 +2,25 @@ defmodule Octopus.Connector.DelightedTest do
   use Octopus.DataCase
 
   import Mox
+  import Rewire
 
   alias Octopus.ConnectorHistory
   alias Octopus.Connector.Delighted
   alias Octopus.Client.DelightedMock
   alias Octopus.Sink.WarehouseMock
 
+  rewire(Delighted, Delighted: DelightedMock)
+  rewire(Delighted, Warehouse: WarehouseMock)
+
   setup :verify_on_exit!
 
   setup do
-    last_update = Enum.random(0..10_000_000)
+    latest_record_time_unix = Enum.random(0..10_000_000)
 
-    %ConnectorHistory{connector: to_string(Delighted), last_update: last_update}
+    %ConnectorHistory{
+      connector: to_string(Delighted),
+      latest_record_time_unix: latest_record_time_unix
+    }
     |> Repo.insert!()
 
     stub(DelightedMock, :get_survey_responses, fn _, _ ->
@@ -22,12 +29,14 @@ defmodule Octopus.Connector.DelightedTest do
 
     stub(WarehouseMock, :store, fn data, _ -> data end)
 
-    {:ok, last_update: last_update}
+    {:ok, latest_record_time_unix: latest_record_time_unix}
   end
 
   describe "#perform" do
-    test "connector pulls surveys from last update time", %{last_update: last_update} do
-      expect(DelightedMock, :get_survey_responses, fn ^last_update, _ ->
+    test "connector pulls surveys from last update time", %{
+      latest_record_time_unix: latest_record_time_unix
+    } do
+      expect(DelightedMock, :get_survey_responses, fn ^latest_record_time_unix, _ ->
         [%{"updated_at" => 12345}]
       end)
 
@@ -53,12 +62,12 @@ defmodule Octopus.Connector.DelightedTest do
     end
 
     test "last update time is stored in connector history" do
-      new_last_update = Enum.random(0..10_000_000)
-      expect_get_survey_responses(DelightedMock, 1, new_last_update)
+      new_latest_record_time_unix = Enum.random(0..10_000_000)
+      expect_get_survey_responses(DelightedMock, 1, new_latest_record_time_unix)
 
       Delighted.perform(%{})
 
-      assert %ConnectorHistory{last_update: ^new_last_update} =
+      assert %ConnectorHistory{latest_record_time_unix: ^new_latest_record_time_unix} =
                ConnectorHistory.get_history(Delighted)
     end
   end

@@ -1,4 +1,6 @@
 ExUnit.start(timeout: :infinity)
 Ecto.Adapters.SQL.Sandbox.mode(Octopus.Repo, :manual)
-Mox.defmock(Octopus.Client.DelightedMock, for: Octopus.Client.DelightedClient)
+Mox.defmock(Octopus.Client.DelightedMock, for: Octopus.Client.Delighted.Behaviour)
+Mox.defmock(Octopus.Client.DomoMock, for: Octopus.Client.Domo.Behaviour)
+Mox.defmock(Octopus.Client.HubspotMock, for: Octopus.Client.Hubspot.Behaviour)
 Mox.defmock(Octopus.Sink.WarehouseMock, for: Octopus.Sink)

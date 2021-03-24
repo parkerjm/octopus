@@ -20,4 +20,13 @@ if config_env() == :prod do
     api_key: System.fetch_env!("DELIGHTED_API_KEY"),
     timeout_between_requests:
       String.to_integer(System.fetch_env!("DELIGHTED_TIMEOUT_BETWEEN_REQUESTS"))
+
+  config :octopus, :hubspot, api_key: System.fetch_env!("HUBSPOT_API_KEY")
+
+  config :octopus, :domo,
+    username: System.fetch_env!("DOMO_USERNAME"),
+    password: System.fetch_env!("DOMO_PASSWORD"),
+    procurement_dataset_id: System.fetch_env!("DOMO_PROCUREMENT_DATASET_ID"),
+    timeout_between_requests:
+      String.to_integer(System.fetch_env!("DOMO_TIMEOUT_BETWEEN_REQUESTS"))
 end

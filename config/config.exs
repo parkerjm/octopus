@@ -11,25 +11,25 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-unique_opts = [
-  period: 60 * 60 * 24,
-  states: [:available, :scheduled, :executing]
-]
-
-config :octopus, Oban,
-  repo: Octopus.Repo,
-  plugins: [
-    {Oban.Plugins.Pruner, max_age: 3600},
-    {Oban.Plugins.Cron,
-     crontab: [{"*/15 * * * *", Octopus.Connector.Delighted, unique: unique_opts}]}
-  ],
-  queues: [default: 10]
-
 config :octopus, ecto_repos: [Octopus.Repo]
-config :octopus, delighted_client: Octopus.Client.Delighted
-config :octopus, :delighted, api_key: "fake"
-config :octopus, warehouse: Octopus.Sink.Warehouse
 config :phoenix, :json_library, Jason
 config :tesla, adapter: Tesla.Adapter.Hackney
+
+config :octopus, Oban,
+  queues: false,
+  plugins: false,
+  repo: Octopus.Repo
+
+config :octopus, :delighted,
+  api_key: "fake",
+  timeout_between_requests: 0
+
+config :octopus, :hubspot, api_key: "fake"
+
+config :octopus, :domo,
+  username: "fake_user",
+  password: "fake_pass",
+  procurement_dataset_id: "fake",
+  timeout_between_requests: 0
 
 import_config "#{Mix.env()}.exs"

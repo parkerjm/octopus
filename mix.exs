@@ -55,7 +55,8 @@ defmodule Octopus.MixProject do
       {:telemetry, "~> 0.4"},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},
-      {:mox, "~> 1.0", only: :test}
+      {:mox, "~> 1.0", only: :test},
+      {:rewire, "~> 0.5", only: :test}
     ]
   end
 
