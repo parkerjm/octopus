@@ -1,11 +1,15 @@
 defmodule Octopus.Client.Delighted do
-  @behaviour Octopus.Client.DelightedClient
-  use Tesla
+  defmodule Behaviour do
+    @callback get_survey_responses(number(), number()) :: list(map())
+  end
 
-  plug(Tesla.Middleware.BaseUrl, "https://api.delighted.com/v1/")
-  plug(Tesla.Middleware.Headers, [{"authorization", "Basic #{basic_auth_creds()}"}])
-  plug(Tesla.Middleware.JSON)
-  plug(Tesla.Middleware.Logger)
+  @behaviour Behaviour
+  use Tesla, only: [:get]
+
+  plug Tesla.Middleware.BaseUrl, "https://api.delighted.com/v1/"
+  plug Tesla.Middleware.Headers, [{"authorization", "Basic #{basic_auth_creds()}"}]
+  plug Tesla.Middleware.JSON
+  plug Tesla.Middleware.Logger
 
   @impl true
   def get_survey_responses(updated_since \\ 0, per_page \\ 100) do

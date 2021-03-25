@@ -19,12 +19,6 @@ config :octopus, OctopusWeb.Endpoint,
 
 config :octopus, Octopus.Repo.ListingsPortal, database: "api_edge_test"
 
-config :octopus, Oban, queues: false, plugins: false
-
-config :octopus, delighted_client: Octopus.Client.DelightedMock
-config :octopus, :delighted, timeout_between_requests: 0
-config :octopus, warehouse: Octopus.Sink.WarehouseMock
-
 config :logger, level: :warn
 
 config :tesla, adapter: Tesla.Mock
