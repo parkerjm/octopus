@@ -16,6 +16,31 @@ if config_env() == :prod do
     hostname: System.fetch_env!("DATABASE_HOST"),
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
+  unique_opts = [
+    period: 60 * 60 * 24,
+    states: [:available, :scheduled, :executing]
+  ]
+
+  crontab =
+    if System.get_env("APP_ENV") == "production" do
+      [
+        {"*/15 * * * *", Octopus.Connector.Delighted, unique: unique_opts},
+        {"*/20 * * * *", Octopus.Connector.Domo, unique: unique_opts}
+      ]
+    else
+      [
+        {"*/15 * * * *", Octopus.Connector.Delighted, unique: unique_opts}
+      ]
+    end
+
+  config :octopus, Oban,
+    repo: Octopus.Repo,
+    plugins: [
+      {Oban.Plugins.Pruner, max_age: 3600},
+      {Oban.Plugins.Cron, crontab: crontab}
+    ],
+    queues: [default: 10]
+
   config :octopus, :delighted,
     api_key: System.fetch_env!("DELIGHTED_API_KEY"),
     timeout_between_requests:
