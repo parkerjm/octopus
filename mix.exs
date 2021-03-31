@@ -56,7 +56,8 @@ defmodule Octopus.MixProject do
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},
       {:mox, "~> 1.0", only: :test},
-      {:rewire, "~> 0.5", only: :test}
+      {:rewire, "~> 0.5", only: :test},
+      {:ecto_psql_extras, "~> 0.2"}
     ]
   end
 

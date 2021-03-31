@@ -42,7 +42,7 @@ defmodule OctopusWeb.Router do
 
     scope "/" do
       pipe_through [:browser, :admins_only]
-      live_dashboard "/dashboard", metrics: OctopusWeb.Telemetry
+      live_dashboard "/dashboard", metrics: OctopusWeb.Telemetry, ecto_repos: [Octopus.Repo]
     end
   end
 end
