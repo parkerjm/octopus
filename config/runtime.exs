@@ -54,4 +54,8 @@ if config_env() == :prod do
     procurement_dataset_id: System.fetch_env!("DOMO_PROCUREMENT_DATASET_ID"),
     timeout_between_requests:
       String.to_integer(System.fetch_env!("DOMO_TIMEOUT_BETWEEN_REQUESTS"))
+
+  config :octopus, :dashboard,
+    username: System.fetch_env!("DASHBOARD_USERNAME"),
+    password: System.fetch_env!("DASHBOARD_PASSWORD")
 end

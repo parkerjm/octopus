@@ -32,4 +32,8 @@ config :octopus, :domo,
   procurement_dataset_id: "fake",
   timeout_between_requests: 0
 
+config :octopus, :dashboard,
+  username: "crown",
+  password: "caliber"
+
 import_config "#{Mix.env()}.exs"
