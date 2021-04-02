@@ -34,10 +34,15 @@ defmodule OctopusWeb.Router do
   # as long as you are also using SSL (which you should anyway).
   if Mix.env() in [:dev, :test, :prod] do
     import Phoenix.LiveDashboard.Router
+    import Plug.BasicAuth
+
+    pipeline :admins_only do
+      plug :basic_auth, Application.fetch_env!(:octopus, :dashboard)
+    end
 
     scope "/" do
-      pipe_through :browser
-      live_dashboard "/dashboard", metrics: OctopusWeb.Telemetry
+      pipe_through [:browser, :admins_only]
+      live_dashboard "/dashboard", metrics: OctopusWeb.Telemetry, ecto_repos: [Octopus.Repo]
     end
   end
 end
