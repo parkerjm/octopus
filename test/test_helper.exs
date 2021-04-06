@@ -1,6 +1,10 @@
 ExUnit.start(timeout: :infinity)
 Ecto.Adapters.SQL.Sandbox.mode(Octopus.Repo, :manual)
+
 Mox.defmock(Octopus.Client.DelightedMock, for: Octopus.Client.Delighted.Behaviour)
+Mox.defmock(Octopus.Client.DomoAuthMock, for: Octopus.Client.DomoAuth.Behaviour)
 Mox.defmock(Octopus.Client.DomoMock, for: Octopus.Client.Domo.Behaviour)
 Mox.defmock(Octopus.Client.HubspotMock, for: Octopus.Client.Hubspot.Behaviour)
+Mox.defmock(Octopus.Client.RingCentralAuthMock, for: Octopus.Client.RingCentralAuth.Behaviour)
+Mox.defmock(Octopus.Client.RingCentralMock, for: Octopus.Client.RingCentral.Behaviour)
 Mox.defmock(Octopus.Sink.WarehouseMock, for: Octopus.Sink)

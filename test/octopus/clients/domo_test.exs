@@ -1,7 +1,18 @@
 defmodule Octopus.Client.DomoTest do
   use Octopus.DataCase
+  import Mox
+  import Rewire
   import Tesla.Mock
-  alias Octopus.Client.Domo
+  alias Octopus.Client.{Domo, DomoAuthMock}
+
+  rewire(Domo, DomoAuth: DomoAuthMock)
+
+  setup :verify_on_exit!
+
+  setup do
+    stub(DomoAuthMock, :get_token, fn -> "token" end)
+    :ok
+  end
 
   describe "#get_procurement_data" do
     setup do
@@ -21,14 +32,8 @@ defmodule Octopus.Client.DomoTest do
       expected_url = "https://api.domo.com/v1/datasets/query/execute/#{procurement_dataset_id}"
 
       mock(fn
-        %{method: :get, url: "https://api.domo.com/oauth/token"} ->
-          {200, %{}, %{"access_token" => "token"}}
-
         %{method: :post, url: ^expected_url} ->
           {200, %{}, fake_rsp()}
-
-        _ ->
-          {500, %{}, %{}}
       end)
 
       Domo.get_procurement_data("2021-01-01", 1)
@@ -38,15 +43,11 @@ defmodule Octopus.Client.DomoTest do
       expected_token = "token#{Enum.random(0..1000)}"
       expected_auth_header = "Bearer #{expected_token}"
 
-      mock(fn
-        %{method: :get, url: "https://api.domo.com/oauth/token"} ->
-          {200, %{}, %{"access_token" => expected_token}}
+      stub(DomoAuthMock, :get_token, fn -> expected_token end)
 
+      mock(fn
         %{headers: [{"authorization", ^expected_auth_header} | _rest]} ->
           {200, %{}, fake_rsp()}
-
-        _ ->
-          {500, %{}, %{}}
       end)
 
       Domo.get_procurement_data("2021-01-01", 1)
@@ -62,14 +63,8 @@ defmodule Octopus.Client.DomoTest do
         }'\\n ORDER BY Procurement_Lead_Submission_Date_1 ASC\\n LIMIT #{expected_limit}\\n\"}"
 
       mock(fn
-        %{method: :get, url: "https://api.domo.com/oauth/token"} ->
-          {200, %{}, %{"access_token" => "token"}}
-
         %{body: ^expected_body} ->
           {200, %{}, fake_rsp()}
-
-        _ ->
-          {500, %{}, %{}}
       end)
 
       Domo.get_procurement_data(expected_date, expected_limit)
@@ -77,9 +72,6 @@ defmodule Octopus.Client.DomoTest do
 
     test "returns list of elixir maps" do
       mock(fn
-        %{method: :get, url: "https://api.domo.com/oauth/token"} ->
-          {200, %{}, %{"access_token" => "token"}}
-
         _ ->
           {200, %{}, fake_rsp()}
       end)
@@ -95,9 +87,6 @@ defmodule Octopus.Client.DomoTest do
 
     test "raises error if response code is not 200" do
       mock(fn
-        %{method: :get, url: "https://api.domo.com/oauth/token"} ->
-          {200, %{}, %{"access_token" => "token"}}
-
         _ ->
           raise RuntimeError, "request error"
           # {500, %{}, %{}}

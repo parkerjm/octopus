@@ -21,16 +21,20 @@ if config_env() == :prod do
     states: [:available, :scheduled, :executing]
   ]
 
+  shared_crontab = [
+    {"*/15 * * * *", Octopus.Connector.Delighted, unique: unique_opts},
+    {"*/15 * * * *", Octopus.Connector.RingCentral, unique: unique_opts}
+  ]
+
+  production_crontab = [
+    {"*/20 * * * *", Octopus.Connector.Domo, unique: unique_opts}
+  ]
+
   crontab =
     if System.get_env("APP_ENV") == "production" do
-      [
-        {"*/15 * * * *", Octopus.Connector.Delighted, unique: unique_opts},
-        {"*/20 * * * *", Octopus.Connector.Domo, unique: unique_opts}
-      ]
+      shared_crontab ++ production_crontab
     else
-      [
-        {"*/15 * * * *", Octopus.Connector.Delighted, unique: unique_opts}
-      ]
+      shared_crontab
     end
 
   config :octopus, Oban,
@@ -58,4 +62,12 @@ if config_env() == :prod do
   config :octopus, :dashboard,
     username: System.fetch_env!("DASHBOARD_USERNAME"),
     password: System.fetch_env!("DASHBOARD_PASSWORD")
+
+  config :octopus, :ring_central,
+    base_url: System.fetch_env!("RING_CENTRAL_BASE_URL"),
+    client_id: System.fetch_env!("RING_CENTRAL_CLIENT_ID"),
+    secret: System.fetch_env!("RING_CENTRAL_CLIENT_SECRET"),
+    username: System.fetch_env!("RING_CENTRAL_USERNAME"),
+    password: System.fetch_env!("RING_CENTRAL_PASSWORD"),
+    timeout_between_requests: System.fetch_env!("RING_CENTRAL_TIMEOUT_BETWEEN_REQUESTS")
 end

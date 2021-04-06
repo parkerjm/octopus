@@ -11,12 +11,13 @@ defmodule Octopus.Application do
       OctopusWeb.Telemetry,
       {Phoenix.PubSub, name: Octopus.PubSub},
       OctopusWeb.Endpoint,
-      # Octopus.Repo.ListingsPortal,
       {Oban, oban_config()}
     ]
 
     :telemetry.attach_many("oban-logger", oban_events(), &Octopus.ObanLogger.handle_event/4, [])
     :ok = Oban.Telemetry.attach_default_logger()
+
+    :ets.new(:token_cache, [:set, :public, :named_table])
 
     Code.compiler_options(ignore_module_conflict: true)
 

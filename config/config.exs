@@ -36,4 +36,12 @@ config :octopus, :dashboard,
   username: "crown",
   password: "caliber"
 
+config :octopus, :ring_central,
+  base_url: "https://platform.devtest.ringcentral.com/restapi/",
+  client_id: "fake_client_id",
+  secret: "fake_secret",
+  username: "fake_user",
+  password: "fake_pass",
+  timeout_between_requests: 0
+
 import_config "#{Mix.env()}.exs"

@@ -16,7 +16,7 @@ defmodule Octopus.Connector.Domo do
     %ConnectorHistory{latest_record_date: latest_record_date} =
       ConnectorHistory.get_history(__MODULE__)
 
-    (latest_record_date || ~D[2015-01-01])
+    (latest_record_date || ConnectorHistory.cc_epoch_date())
     |> Date.to_string()
     |> get_procurement_data()
   end
@@ -27,11 +27,13 @@ defmodule Octopus.Connector.Domo do
     new_latest_record_date = persist_page(procurement_data)
     ConnectorHistory.update_latest_record_date(__MODULE__, new_latest_record_date)
 
-    Process.sleep(timeout_between_requests())
-
     case(length(procurement_data)) do
-      len when len < @results_per_page -> :ok
-      _ -> get_procurement_data(new_latest_record_date)
+      len when len < @results_per_page ->
+        :ok
+
+      _ ->
+        Process.sleep(timeout_between_requests())
+        get_procurement_data(new_latest_record_date)
     end
   end
 

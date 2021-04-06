@@ -46,6 +46,12 @@ defmodule Octopus.ConnectorHistory do
     update_timestamp(connector, :latest_record_datetime, latest_record_datetime)
   end
 
+  @spec cc_epoch_date() :: Date.t()
+  def cc_epoch_date, do: ~D[2015-01-01]
+
+  @spec cc_epoch_datetime() :: DateTime.t()
+  def cc_epoch_datetime, do: ~U[2015-01-01 00:00:00.000000Z]
+
   defp update_timestamp(connector, field, timestamp) do
     connector
     |> get_history()

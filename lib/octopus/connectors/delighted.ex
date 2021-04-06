@@ -24,11 +24,13 @@ defmodule Octopus.Connector.Delighted do
     new_latest_record_time_unix = persist_page(survey_responses)
     ConnectorHistory.update_latest_record_time_unix(__MODULE__, new_latest_record_time_unix)
 
-    Process.sleep(timeout_between_requests())
-
     case(length(survey_responses)) do
-      len when len < @results_per_page -> :ok
-      _ -> get_survey_responses(new_latest_record_time_unix)
+      len when len < @results_per_page ->
+        :ok
+
+      _ ->
+        Process.sleep(timeout_between_requests())
+        get_survey_responses(new_latest_record_time_unix)
     end
   end
 

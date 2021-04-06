@@ -8,9 +8,6 @@ defmodule Octopus.Client.DomoAuthTest do
       mock(fn
         %{method: :get, url: "https://api.domo.com/oauth/token"} ->
           {200, %{}, %{"access_token" => "token"}}
-
-        _ ->
-          {500, %{}, %{}}
       end)
 
       DomoAuth.get_token()
@@ -22,9 +19,6 @@ defmodule Octopus.Client.DomoAuthTest do
       mock(fn
         %{headers: [{"authorization", ^expected_auth_header} | _rest]} ->
           {200, %{}, %{"access_token" => "token"}}
-
-        _ ->
-          {500, %{}, %{}}
       end)
 
       DomoAuth.get_token()
@@ -34,9 +28,6 @@ defmodule Octopus.Client.DomoAuthTest do
       mock(fn
         %{query: [grant_type: "client_credentials", scope: "data"]} ->
           {200, %{}, %{"access_token" => "token"}}
-
-        _ ->
-          {500, %{}, %{}}
       end)
 
       DomoAuth.get_token()
