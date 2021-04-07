@@ -24,7 +24,7 @@ defmodule Octopus.Client.DelightedTest do
 
     test "defaults query params to correct values" do
       mock(fn
-        %{query: [updated_since: 0, per_page: 100]} ->
+        %{query: [updated_since: 0, per_page: 100, expand: ["person", "notes"]]} ->
           %Tesla.Env{status: 200, body: "good"}
       end)
 
@@ -36,7 +36,9 @@ defmodule Octopus.Client.DelightedTest do
       per_page = Enum.random(0..100)
 
       mock(fn
-        %{query: [updated_since: ^updated_since, per_page: ^per_page]} ->
+        %{
+          query: [updated_since: ^updated_since, per_page: ^per_page, expand: ["person", "notes"]]
+        } ->
           %Tesla.Env{status: 200, body: "good"}
       end)
 

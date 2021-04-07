@@ -15,7 +15,7 @@ defmodule Octopus.Client.Delighted do
   def get_survey_responses(updated_since \\ 0, per_page \\ 100) do
     {:ok, %Tesla.Env{body: survey_responses}} =
       get("/survey_responses.json",
-        query: [updated_since: updated_since, per_page: per_page]
+        query: [updated_since: updated_since, per_page: per_page, expand: ["person", "notes"]]
       )
 
     survey_responses
