@@ -23,6 +23,20 @@ jobs:
           docker push $IMAGE
           docker push $LATEST
 
+  build_db_migrator_image:
+    docker:
+      - image: cimg/elixir:1.11.3-node
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run: |
+          IMAGE=crownandcaliber/octopus-db-migration:$CIRCLE_SHA1
+          docker build --target builder -t $IMAGE .
+          docker login -u $DOCKER_USER -p $DOCKER_PASS
+          docker push $IMAGE
+
+
   build:
     docker:
       - image: cimg/elixir:1.11.3-node
@@ -105,11 +119,15 @@ workflows:
       - build_image:
           requires:
             - build
+      - build_db_migrator_image:
+          requires:
+            - build
       - deploy_staging:
           name: Deploy to staging
           type: approval
           requires:
             - build_image
+            - build_db_migrator_image
       - migrate_staging_db:
           name: Migrate Staging Database
           requires:
@@ -128,6 +146,7 @@ workflows:
           type: approval
           requires:
             - build_image
+            - build_db_migrator_image
           filters:
             branches:
               only:

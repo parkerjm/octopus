@@ -9,7 +9,7 @@ spec:
       - name: dhub-ccdevs
       containers:
       - name: $JOB
-        image: crownandcaliber/octopus:$IMAGE_TAG
+        image: crownandcaliber/octopus-db-migration:$IMAGE_TAG
         envFrom:
         - configMapRef:
             name: octopus-$APP_ENV
