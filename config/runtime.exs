@@ -69,5 +69,6 @@ if config_env() == :prod do
     secret: System.fetch_env!("RING_CENTRAL_CLIENT_SECRET"),
     username: System.fetch_env!("RING_CENTRAL_USERNAME"),
     password: System.fetch_env!("RING_CENTRAL_PASSWORD"),
-    timeout_between_requests: System.fetch_env!("RING_CENTRAL_TIMEOUT_BETWEEN_REQUESTS")
+    timeout_between_requests:
+      String.to_integer(System.fetch_env!("RING_CENTRAL_TIMEOUT_BETWEEN_REQUESTS"))
 end

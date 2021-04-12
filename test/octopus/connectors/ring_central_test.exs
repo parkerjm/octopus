@@ -26,7 +26,7 @@ defmodule Octopus.Connector.RingCentralTest do
     }
     |> Repo.insert!()
 
-    stub(RingCentralMock, :get_call_log, fn _, _ ->
+    stub(RingCentralMock, :get_call_log, fn _, _, _ ->
       List.duplicate(%{"updated_at" => 12345}, 3)
     end)
 
@@ -39,18 +39,22 @@ defmodule Octopus.Connector.RingCentralTest do
     test "connector pulls surveys from last update time", %{
       latest_record_datetime: latest_record_datetime
     } do
-      expect(RingCentralMock, :get_call_log, fn ^latest_record_datetime, _ ->
+      expect(RingCentralMock, :get_call_log, fn ^latest_record_datetime, _, _ ->
         [%{"startTime" => DateTime.to_iso8601(DateTime.utc_now())}]
+      end)
+
+      expect(RingCentralMock, :get_call_log, fn ^latest_record_datetime, _, _ ->
+        []
       end)
 
       RingCentral.perform(%{})
     end
 
-    test "fetches pages until fewer than max results are returned" do
+    test "fetches pages until no results are returned" do
       RingCentralMock
       |> expect_get_call_log(100)
-      |> expect_get_call_log(100)
-      |> expect_get_call_log(3)
+      |> expect_get_call_log(10)
+      |> expect_get_call_log(0)
 
       RingCentral.perform(%{})
     end
@@ -58,9 +62,19 @@ defmodule Octopus.Connector.RingCentralTest do
     test "stores all pages in the warehouse" do
       RingCentralMock
       |> expect_get_call_log(100)
-      |> expect_get_call_log(3)
+      |> expect_get_call_log(10)
+      |> expect_get_call_log(0)
 
       expect(WarehouseMock, :store, 2, fn data, _table -> data end)
+      RingCentral.perform(%{})
+    end
+
+    test "stores pages in correct table" do
+      RingCentralMock
+      |> expect_get_call_log(100)
+      |> expect_get_call_log(0)
+
+      expect(WarehouseMock, :store, 1, fn data, "ring_central_call_log" -> data end)
       RingCentral.perform(%{})
     end
 
@@ -71,6 +85,7 @@ defmodule Octopus.Connector.RingCentralTest do
         |> DateTime.truncate(:second)
 
       expect_get_call_log(RingCentralMock, 1, latest_start_time)
+      expect_get_call_log(RingCentralMock, 0, DateTime.utc_now())
 
       RingCentral.perform(%{})
 
@@ -82,7 +97,7 @@ defmodule Octopus.Connector.RingCentralTest do
   defp expect_get_call_log(mock, result_count, start_time \\ nil) do
     start_time = start_time || DateTime.to_iso8601(DateTime.utc_now())
 
-    expect(mock, :get_call_log, fn _, _ ->
+    expect(mock, :get_call_log, fn _, _, _ ->
       List.duplicate(%{"startTime" => start_time}, result_count)
     end)
 

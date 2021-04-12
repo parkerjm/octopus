@@ -94,7 +94,7 @@ defmodule Octopus.Client.RingCentralTest do
 
     test "defaults query params to correct values" do
       mock(fn
-        %{query: [dateFrom: "2017-01-01T00:00:00.000000Z", perPage: 100]} ->
+        %{query: [dateFrom: "2017-01-01T00:00:00.000000Z", perPage: 100, page: 1]} ->
           %Tesla.Env{status: 200, body: %{"records" => "good"}}
       end)
 
@@ -104,13 +104,14 @@ defmodule Octopus.Client.RingCentralTest do
     test "overrides query params if values are provided" do
       date_from = Enum.random(0..1000)
       per_page = Enum.random(0..100)
+      page = Enum.random(0..100)
 
       mock(fn
-        %{query: [dateFrom: ^date_from, perPage: ^per_page]} ->
+        %{query: [dateFrom: ^date_from, perPage: ^per_page, page: ^page]} ->
           %Tesla.Env{status: 200, body: %{"records" => "good"}}
       end)
 
-      assert RingCentral.get_call_log(date_from, per_page) == "good"
+      assert RingCentral.get_call_log(date_from, per_page, page) == "good"
     end
 
     test "returns list of log entries" do

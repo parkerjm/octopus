@@ -1,15 +1,22 @@
 defmodule Octopus.Client.RingCentral do
   defmodule Behaviour do
-    @callback get_call_log(number(), number()) :: list(map())
+    @callback get_call_log(String.t(), number(), number()) :: list(map())
   end
 
   @behaviour Behaviour
   use Tesla, only: [:get]
+  require Logger
 
   @impl true
-  def get_call_log(date_from \\ "2017-01-01T00:00:00.000000Z", per_page \\ 100) do
+  def get_call_log(date_from \\ "2017-01-01T00:00:00.000000Z", per_page \\ 100, page \\ 1) do
+    Logger.info(
+      "Client.RingCentral: Getting page #{page} of call log from #{date_from} with #{per_page} per page"
+    )
+
     %Tesla.Env{status: 200, body: %{"records" => call_log}} =
-      get!(client(), "v1.0/account/~/call-log", query: [dateFrom: date_from, perPage: per_page])
+      get!(client(), "v1.0/account/~/call-log",
+        query: [dateFrom: date_from, perPage: per_page, page: page]
+      )
 
     call_log
   end
