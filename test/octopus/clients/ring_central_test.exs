@@ -94,7 +94,14 @@ defmodule Octopus.Client.RingCentralTest do
 
     test "defaults query params to correct values" do
       mock(fn
-        %{query: [dateFrom: "2017-01-01T00:00:00.000000Z", perPage: 100, page: 1]} ->
+        %{
+          query: [
+            dateFrom: "2017-01-01T00:00:00.000000Z",
+            perPage: 100,
+            page: 1,
+            view: "Detailed"
+          ]
+        } ->
           %Tesla.Env{status: 200, body: %{"records" => "good"}}
       end)
 
@@ -107,7 +114,7 @@ defmodule Octopus.Client.RingCentralTest do
       page = Enum.random(0..100)
 
       mock(fn
-        %{query: [dateFrom: ^date_from, perPage: ^per_page, page: ^page]} ->
+        %{query: [dateFrom: ^date_from, perPage: ^per_page, page: ^page, view: "Detailed"]} ->
           %Tesla.Env{status: 200, body: %{"records" => "good"}}
       end)
 
