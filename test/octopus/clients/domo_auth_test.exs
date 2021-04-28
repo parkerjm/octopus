@@ -1,49 +1,77 @@
 defmodule Octopus.Client.DomoAuthTest do
   use Octopus.DataCase
-  import Tesla.Mock
   alias Octopus.Client.DomoAuth
 
+  setup do
+    bypass = Bypass.open()
+
+    env =
+      :octopus
+      |> Application.get_env(:domo)
+      |> Keyword.put(:base_url, "http://localhost:#{bypass.port}")
+
+    Application.put_env(:octopus, :domo, env)
+
+    {:ok, bypass: bypass}
+  end
+
   describe "#get_token" do
-    test "sends GET request to correct request URL" do
-      mock(fn
-        %{method: :get, url: "https://api.domo.com/oauth/token"} ->
-          {200, %{}, %{"access_token" => "token"}}
+    test "sends GET request to correct request URL", %{bypass: bypass} do
+      Bypass.expect(bypass, "GET", "/oauth/token", fn conn ->
+        auth_response(conn)
       end)
 
       DomoAuth.get_token()
     end
 
-    test "includes basic auth header" do
+    test "includes basic auth header", %{bypass: bypass} do
       expected_auth_header = "Basic #{Base.encode64("fake_user:fake_pass")}"
 
-      mock(fn
-        %{headers: [{"authorization", ^expected_auth_header} | _rest]} ->
-          {200, %{}, %{"access_token" => "token"}}
+      Bypass.expect(bypass, "GET", "/oauth/token", fn conn ->
+        assert :proplists.get_value("authorization", conn.req_headers) == expected_auth_header
+        auth_response(conn)
       end)
 
       DomoAuth.get_token()
     end
 
-    test "sends query params" do
-      mock(fn
-        %{query: [grant_type: "client_credentials", scope: "data"]} ->
-          {200, %{}, %{"access_token" => "token"}}
+    test "sends query params", %{bypass: bypass} do
+      Bypass.expect(bypass, "GET", "/oauth/token", fn conn ->
+        assert conn.query_params["grant_type"] == "client_credentials"
+        assert conn.query_params["scope"] == "data"
+
+        auth_response(conn)
       end)
 
       DomoAuth.get_token()
     end
 
-    test "returns token" do
+    test "returns token", %{bypass: bypass} do
       expected_token = "token#{Enum.random(0..1000)}"
-      mock(fn _ -> {200, %{}, %{"access_token" => expected_token}} end)
+
+      Bypass.expect(bypass, "GET", "/oauth/token", fn conn ->
+        auth_response(conn, expected_token)
+      end)
 
       assert DomoAuth.get_token() == expected_token
     end
 
-    test "raises error if no token is returned" do
-      mock(fn _ -> raise RuntimeError, "request failed" end)
+    test "raises error if no token is returned", %{bypass: bypass} do
+      Bypass.expect(bypass, "GET", "/oauth/token", fn conn ->
+        Plug.Conn.resp(conn, 500, "")
+      end)
 
-      assert_raise RuntimeError, ~r/request failed/, fn -> DomoAuth.get_token() end
+      assert_raise MatchError, fn -> DomoAuth.get_token() end
     end
+  end
+
+  defp auth_response(conn, returned_token \\ "token") do
+    conn
+    |> Plug.Conn.put_resp_header("content-type", "application/json")
+    |> Plug.Conn.resp(200, token_response(returned_token))
+  end
+
+  defp token_response(returned_token) do
+    Jason.encode!(%{"access_token" => returned_token})
   end
 end

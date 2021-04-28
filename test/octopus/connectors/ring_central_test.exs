@@ -92,6 +92,19 @@ defmodule Octopus.Connector.RingCentralTest do
       assert %ConnectorHistory{latest_record_datetime: ^latest_start_time} =
                ConnectorHistory.get_history(RingCentral)
     end
+
+    test "uses existing timestamp when no results are returned", %{
+      latest_record_datetime: latest_record_datetime
+    } do
+      expect_get_call_log(RingCentralMock, 0)
+
+      RingCentral.perform(%{})
+
+      %ConnectorHistory{latest_record_datetime: actual_latest_record_datetime} =
+        ConnectorHistory.get_history(RingCentral)
+
+      assert DateTime.to_iso8601(actual_latest_record_datetime) == latest_record_datetime
+    end
   end
 
   defp expect_get_call_log(mock, result_count, start_time \\ nil) do

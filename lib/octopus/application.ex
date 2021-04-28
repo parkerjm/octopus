@@ -11,7 +11,8 @@ defmodule Octopus.Application do
       OctopusWeb.Telemetry,
       {Phoenix.PubSub, name: Octopus.PubSub},
       OctopusWeb.Endpoint,
-      {Oban, oban_config()}
+      {Oban, oban_config()},
+      {Cachex, name: :cache}
     ]
 
     :telemetry.attach_many("oban-logger", oban_events(), &Octopus.ObanLogger.handle_event/4, [])

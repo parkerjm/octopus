@@ -6,15 +6,10 @@ defmodule Octopus.Client.DomoAuth do
   @behaviour Behaviour
   use Tesla
 
-  plug Tesla.Middleware.BaseUrl, "https://api.domo.com/oauth"
-  plug Tesla.Middleware.BasicAuth, credentials()
-  plug Tesla.Middleware.JSON
-  plug Tesla.Middleware.Logger
-
   @impl true
   def get_token do
     %Tesla.Env{status: 200, body: %{"access_token" => token}} =
-      get!("/token",
+      get!(client(), "/oauth/token",
         query: [
           grant_type: "client_credentials",
           scope: "data"
@@ -22,6 +17,21 @@ defmodule Octopus.Client.DomoAuth do
       )
 
     token
+  end
+
+  defp client do
+    middleware = [
+      {Tesla.Middleware.BaseUrl, base_url()},
+      {Tesla.Middleware.BasicAuth, credentials()},
+      Tesla.Middleware.JSON,
+      Tesla.Middleware.Logger
+    ]
+
+    Tesla.client(middleware)
+  end
+
+  defp base_url do
+    Application.fetch_env!(:octopus, :domo)[:base_url]
   end
 
   defp credentials do

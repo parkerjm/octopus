@@ -70,6 +70,17 @@ defmodule Octopus.Connector.DelightedTest do
       assert %ConnectorHistory{latest_record_time_unix: ^new_latest_record_time_unix} =
                ConnectorHistory.get_history(Delighted)
     end
+
+    test "uses existing timestamp when no results are returned", %{
+      latest_record_time_unix: latest_record_time_unix
+    } do
+      expect_get_survey_responses(DelightedMock, 0)
+
+      Delighted.perform(%{})
+
+      assert %ConnectorHistory{latest_record_time_unix: ^latest_record_time_unix} =
+               ConnectorHistory.get_history(Delighted)
+    end
   end
 
   defp expect_get_survey_responses(mock, result_count, updated_at_time \\ 12345) do

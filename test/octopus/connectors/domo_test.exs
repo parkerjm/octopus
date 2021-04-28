@@ -73,6 +73,19 @@ defmodule Octopus.Connector.DomoTest do
       assert %ConnectorHistory{latest_record_date: ^new_latest_record_date} =
                ConnectorHistory.get_history(Domo)
     end
+
+    test "uses existing timestamp when no results are returned", %{
+      latest_record_date: expected_latest_record_date
+    } do
+      expect_get_procurement_data(DomoMock, 0)
+
+      Domo.perform(%{})
+
+      %ConnectorHistory{latest_record_date: actual_latest_record_date} =
+        ConnectorHistory.get_history(Domo)
+
+      assert Date.to_string(actual_latest_record_date) == expected_latest_record_date
+    end
   end
 
   defp procurement_data do

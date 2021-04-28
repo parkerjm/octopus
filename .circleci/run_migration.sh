@@ -1,4 +1,7 @@
 set -e
+
+kubectl delete job $JOB --ignore-not-found=true
+
 cat .circleci/migrate_db.yml.tmpl | \
   sed 's/\$IMAGE_TAG'"/$IMAGE_TAG/g" | \
   sed 's/\$JOB'"/$JOB/g" | \

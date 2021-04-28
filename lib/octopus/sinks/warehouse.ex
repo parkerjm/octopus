@@ -1,20 +1,25 @@
 defmodule Octopus.Sink.Warehouse do
-  @behaviour Octopus.Sink
-  alias Octopus.Repo
-  alias Octopus.Sink.Warehouse.MissingIdError
-  import Ecto.Changeset, only: [cast: 3]
+  defmodule Behaviour do
+    @callback store(list(map()), String.t()) :: list(map())
+    @callback store(list(map()), String.t(), list(String.t())) :: list(map())
+  end
 
   defmodule MissingIdError do
     defexception message: "entry is missing ID, unable to persist"
   end
 
+  @behaviour Behaviour
+  alias Octopus.Repo
+  alias Octopus.Sink.Warehouse.MissingIdError
+  import Ecto.Changeset, only: [cast: 3]
+
   @impl true
-  def store(data, table) do
+  def store(data, table, exclude_prefixes \\ []) do
     data
-    |> Enum.map(&generate_param_sets/1)
+    |> Enum.map(&generate_param_sets(&1, exclude_prefixes))
     |> refresh_table_schema(table)
     |> refresh_ecto_schema(table)
-    |> Task.async_stream(fn params -> persist(params, table) end)
+    |> Task.async_stream(&persist(&1, table), timeout: :infinity)
     |> Stream.run()
 
     data
@@ -23,8 +28,7 @@ defmodule Octopus.Sink.Warehouse do
   defp refresh_table_schema(params_sets, table) do
     columns = params_sets |> Enum.reduce([], &field_names/2) |> Enum.uniq()
 
-    Ecto.Adapters.SQL.query!(
-      Repo,
+    Repo.query!(
       "SELECT column_name FROM information_schema.columns where table_schema = $1 and table_name = $2",
       ["public", table]
     )
@@ -46,25 +50,22 @@ defmodule Octopus.Sink.Warehouse do
 
   defp create_table(table, columns) do
     columns
-    |> Enum.map(fn col -> "#{col} varchar(#{CoercedString.max_length()})" end)
+    |> Enum.map(&"#{&1} varchar(#{CoercedString.max_length()})")
     |> Enum.join(",")
     |> (&Repo.query!("CREATE TABLE #{table} (#{&1});")).()
+
+    Repo.query!("CREATE INDEX IF NOT EXISTS idx_#{table}_id ON #{table}(id)")
   end
 
   defp create_columns(_table, []), do: :ok
 
   defp create_columns(table, columns) do
     columns
-    |> Enum.map(fn col -> "ADD COLUMN #{col} varchar(#{CoercedString.max_length()})" end)
+    |> Enum.map(&"ADD COLUMN #{&1} varchar(#{CoercedString.max_length()})")
     |> Enum.join(",")
     |> (&Repo.query!("ALTER TABLE #{table} #{&1};")).()
   end
 
-  # TODO notes
-  # current: recreate module entirely on the fly
-  # option: create modules one time, update schema on the fly? gets rid of warnings
-  # Module.eval_quoted ^
-  # generates ecto model for dynamic tables. example: sample_table -> Octopus.SampleTable
   defp refresh_ecto_schema(params_sets, table) do
     module = module_for_table(table)
 
@@ -117,34 +118,34 @@ defmodule Octopus.Sink.Warehouse do
     end
   end
 
-  defp generate_param_sets(data, prefixes \\ []) when is_map(data) do
+  defp generate_param_sets(data, exclude_prefixes, prefixes \\ []) when is_map(data) do
     data
     |> Map.keys()
     |> Enum.reduce(%{}, fn field, params ->
       cond do
         is_map(data[field]) ->
-          generate_param_sets(data[field], prefixes ++ [field])
+          generate_param_sets(data[field], exclude_prefixes, prefixes ++ [field])
           |> Map.merge(params)
 
         is_list(data[field]) && data[field] |> List.first() |> is_binary() ->
           data[field]
           |> Enum.join(", ")
           |> (&Map.put(%{}, field, &1)).()
-          |> generate_param_sets(prefixes)
+          |> generate_param_sets(exclude_prefixes, prefixes)
           |> Map.merge(params)
 
         is_list(data[field]) ->
           data[field]
           |> Enum.with_index()
           |> Enum.flat_map(fn {item, idx} ->
-            generate_param_sets(item, prefixes ++ [field, idx])
+            generate_param_sets(item, exclude_prefixes, prefixes ++ [field, idx])
           end)
           |> Enum.reduce(params, fn {col, value}, acc -> Map.put(acc, col, value) end)
 
         true ->
           case prefixes do
-            [] -> field
-            [_ | _] -> "#{Enum.join(prefixes, "_")}_#{field}"
+            [] -> map_field_name(field)
+            [_ | _] -> map_field_name("#{Enum.join(prefixes -- exclude_prefixes, "_")}_#{field}")
           end
           |> String.replace(~r/[\(\)\/]/, "")
           |> String.replace("#", "number")
@@ -153,5 +154,12 @@ defmodule Octopus.Sink.Warehouse do
           |> (&Map.put(params, &1, data[field])).()
       end
     end)
+  end
+
+  # ensures field name is not longer than the postgres max identifier size
+  defp map_field_name(field) do
+    field
+    |> to_string()
+    |> String.slice(0..63)
   end
 end

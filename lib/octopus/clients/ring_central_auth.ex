@@ -1,23 +1,29 @@
 defmodule Octopus.Client.RingCentralAuth do
   defmodule Behaviour do
-    @callback get_token() :: String.t()
+    @callback get_token() :: {String.t(), number()}
   end
 
   @behaviour Behaviour
   use Tesla
 
-  plug Tesla.Middleware.BaseUrl, base_url()
-  plug Tesla.Middleware.BasicAuth, app_credentials()
-  plug Tesla.Middleware.FormUrlencoded
-  plug Tesla.Middleware.JSON
-  plug Tesla.Middleware.Logger
-
   @impl true
   def get_token do
     %Tesla.Env{status: 200, body: %{"access_token" => token, "expires_in" => expiry}} =
-      post!("/oauth/token", user_credentials())
+      post!(client(), "/oauth/token", user_credentials())
 
     {token, expiry}
+  end
+
+  defp client do
+    middleware = [
+      {Tesla.Middleware.BaseUrl, base_url()},
+      {Tesla.Middleware.BasicAuth, app_credentials()},
+      Tesla.Middleware.FormUrlencoded,
+      Tesla.Middleware.JSON,
+      Tesla.Middleware.Logger
+    ]
+
+    Tesla.client(middleware)
   end
 
   defp base_url do

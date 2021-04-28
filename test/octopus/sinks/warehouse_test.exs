@@ -32,10 +32,8 @@ defmodule Octopus.Sink.WarehouseTest do
       |> Jason.decode!()
       |> Warehouse.store("test_table")
 
-      assert actual = Octopus.Repo.get(Octopus.TestTable, expected_id)
-
       actual_attributes =
-        actual
+        Octopus.Repo.get(Octopus.TestTable, expected_id)
         |> Map.from_struct()
         |> Map.delete(:__meta__)
 
@@ -60,10 +58,31 @@ defmodule Octopus.Sink.WarehouseTest do
         owner_name: "James",
         owner_tags: "seller, buyer",
         permissions: "read, write",
-        version: "1"
+        version: "1",
+        crazy_long_field_name_why_in_the_world_did_someone_make_a_field: "who knows",
+        aaaaaaaaaaaaaaaaaaaaaaaa_bbbbbbbbbbbbbbbbbbbbbb_cccccccccccccccc:
+          "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       }
 
       assert actual_attributes == expected_attributes
+    end
+
+    test "respects field name prefix exclusion list" do
+      expected_id = Enum.random(0..10000) |> to_string()
+
+      expected_id
+      |> sample_attributes()
+      |> Jason.decode!()
+      |> Warehouse.store("test_table", ["owner"])
+
+      attributes =
+        Octopus.Repo.get(Octopus.TestTable, expected_id)
+        |> Map.from_struct()
+        |> Map.delete(:__meta__)
+
+      assert attributes[:created_at] == "494039300"
+      assert attributes[:name] == "James"
+      assert attributes[:tags] == "seller, buyer"
     end
 
     test "on update, maps JSON to database columns/values correctly" do
@@ -89,10 +108,8 @@ defmodule Octopus.Sink.WarehouseTest do
       |> List.wrap()
       |> Warehouse.store("test_table")
 
-      assert actual = Octopus.Repo.get(Octopus.TestTable, expected_id)
-
       actual_attributes =
-        actual
+        Octopus.Repo.get(Octopus.TestTable, expected_id)
         |> Map.from_struct()
         |> Map.delete(:__meta__)
 
@@ -117,7 +134,10 @@ defmodule Octopus.Sink.WarehouseTest do
         owner_name: "Jeff",
         owner_tags: "buyer",
         permissions: "read, write",
-        version: "1"
+        version: "1",
+        crazy_long_field_name_why_in_the_world_did_someone_make_a_field: "who knows",
+        aaaaaaaaaaaaaaaaaaaaaaaa_bbbbbbbbbbbbbbbbbbbbbb_cccccccccccccccc:
+          "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       }
 
       assert actual_attributes == expected_attributes
@@ -186,8 +206,16 @@ defmodule Octopus.Sink.WarehouseTest do
           "permissions": ["read", "write"],
           "long_field": "#{String.duplicate("a\\r", 999)}",
           "comment_with_trailing_single_quotes": "a'''",
-          "null_field": null
+          "null_field": null,
+          "crazy_long_field_name_why_in_the_world_did_someone_make_a_field_name_this_long_holy_cow": "who knows",
+          "aaaaaaaaaaaaaaaaaaaaaaaa": {
+            "bbbbbbbbbbbbbbbbbbbbbb": {
+              "ccccccccccccccccccccccccccccc": {
+                "ddddddddddddddddddddddddddddddddddddd": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            }
           }
+        }
       ]
     """
   end

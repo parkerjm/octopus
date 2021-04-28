@@ -36,9 +36,7 @@ defmodule Octopus.MixProject do
       {:phoenix, "~> 1.5.7"},
       {:phoenix_ecto, "~> 4.1"},
       {:phoenix_live_view, "~> 0.15.0"},
-      {:floki, ">= 0.27.0", only: :test},
       {:phoenix_html, "~> 2.11"},
-      {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_dashboard, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
@@ -53,11 +51,15 @@ defmodule Octopus.MixProject do
       {:recase, "~> 0.5"},
       {:oban, "~> 2.4.2"},
       {:telemetry, "~> 0.4"},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
+      {:ecto_psql_extras, "~> 0.2"},
+      {:cachex, "~> 3.3"},
+      {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:dialyxir, "~> 1.0", only: :dev, runtime: false},
       {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},
+      {:floki, ">= 0.27.0", only: :test},
       {:mox, "~> 1.0", only: :test},
       {:rewire, "~> 0.5", only: :test},
-      {:ecto_psql_extras, "~> 0.2"}
+      {:bypass, "~> 2.1", only: :test}
     ]
   end
 

@@ -3,9 +3,7 @@ defmodule Octopus.Repo do
     otp_app: :octopus,
     adapter: Ecto.Adapters.Postgres
 
-  @readonly_repos [
-    Octopus.Repo.ListingsPortal
-  ]
+  @readonly_repos []
 
   for repo <- @readonly_repos do
     defmodule repo do

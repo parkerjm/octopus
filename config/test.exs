@@ -20,5 +20,3 @@ config :octopus, OctopusWeb.Endpoint,
 config :octopus, Octopus.Repo.ListingsPortal, database: "api_edge_test"
 
 config :logger, level: :warn
-
-config :tesla, adapter: Tesla.Mock

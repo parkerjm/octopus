@@ -21,7 +21,7 @@ defmodule Octopus.Connector.Delighted do
     survey_responses =
       Octopus.Client.Delighted.get_survey_responses(latest_record_time_unix, @results_per_page)
 
-    new_latest_record_time_unix = persist_page(survey_responses)
+    new_latest_record_time_unix = persist_page(survey_responses) || latest_record_time_unix
     ConnectorHistory.update_latest_record_time_unix(__MODULE__, new_latest_record_time_unix)
 
     case(length(survey_responses)) do
@@ -33,6 +33,9 @@ defmodule Octopus.Connector.Delighted do
         get_survey_responses(new_latest_record_time_unix)
     end
   end
+
+  defp persist_page([]), do: nil
+  defp persist_page(nil), do: nil
 
   defp persist_page(survey_responses) when length(survey_responses) > 0 do
     survey_responses

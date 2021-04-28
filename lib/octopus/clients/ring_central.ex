@@ -14,7 +14,7 @@ defmodule Octopus.Client.RingCentral do
     )
 
     %Tesla.Env{status: 200, body: %{"records" => call_log}} =
-      get!(client(), "v1.0/account/~/call-log",
+      get!(client(), "/v1.0/account/~/call-log",
         query: [dateFrom: date_from, perPage: per_page, page: page, view: "Detailed"]
       )
 

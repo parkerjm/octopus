@@ -21,10 +21,18 @@ defmodule Octopus.Connector.RingCentral do
   end
 
   defp get_call_log(latest_record_datetime) do
-    call_log = RingCentral.get_call_log(latest_record_datetime, @results_per_page, 1)
-    new_latest_record_datetime = persist_page(call_log)
-    Process.sleep(timeout_between_requests())
-    get_call_log(latest_record_datetime, new_latest_record_datetime)
+    case RingCentral.get_call_log(latest_record_datetime, @results_per_page, 1) do
+      [] ->
+        :ok
+
+      nil ->
+        :ok
+
+      call_log = [_ | _] ->
+        new_latest_record_datetime = persist_page(call_log)
+        Process.sleep(timeout_between_requests())
+        get_call_log(latest_record_datetime, new_latest_record_datetime)
+    end
   end
 
   defp get_call_log(latest_record_datetime, new_latest_record_datetime, page \\ 2) do
@@ -41,6 +49,9 @@ defmodule Octopus.Connector.RingCentral do
         get_call_log(latest_record_datetime, new_latest_record_datetime, page + 1)
     end
   end
+
+  defp persist_page([]), do: nil
+  defp persist_page(nil), do: nil
 
   defp persist_page(call_log) do
     call_log

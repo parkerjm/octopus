@@ -24,7 +24,7 @@ defmodule Octopus.Connector.Domo do
   defp get_procurement_data(latest_record_date) do
     procurement_data = Domo.get_procurement_data(latest_record_date, @results_per_page)
 
-    new_latest_record_date = persist_page(procurement_data)
+    new_latest_record_date = persist_page(procurement_data) || latest_record_date
     ConnectorHistory.update_latest_record_date(__MODULE__, new_latest_record_date)
 
     case(length(procurement_data)) do
@@ -37,7 +37,10 @@ defmodule Octopus.Connector.Domo do
     end
   end
 
-  defp persist_page(procurement_data) do
+  defp persist_page([]), do: nil
+  defp persist_page(nil), do: nil
+
+  defp persist_page(procurement_data) when length(procurement_data) > 0 do
     procurement_data
     |> Hubspot.store_procurement_data()
     |> List.last()

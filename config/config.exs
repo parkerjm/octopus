@@ -11,6 +11,10 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+config :octopus, :dashboard,
+  username: "crown",
+  password: "caliber"
+
 config :octopus, ecto_repos: [Octopus.Repo]
 config :phoenix, :json_library, Jason
 config :tesla, adapter: Tesla.Adapter.Hackney
@@ -21,23 +25,24 @@ config :octopus, Oban,
   repo: Octopus.Repo
 
 config :octopus, :delighted,
-  api_key: "fake",
+  api_key: "fake_api_key",
+  base_url: "https://api.delighted.com/v1/",
   timeout_between_requests: 0
 
-config :octopus, :hubspot, api_key: "fake"
+config :octopus, :hubspot,
+  api_key: "fake_api_key",
+  base_url: "https://api.hubapi.com",
+  timeout_between_requests: 0
 
 config :octopus, :domo,
+  base_url: "https://api.domo.com/v1/",
   username: "fake_user",
   password: "fake_pass",
-  procurement_dataset_id: "fake",
+  procurement_dataset_id: "fake_dataset_id",
   timeout_between_requests: 0
 
-config :octopus, :dashboard,
-  username: "crown",
-  password: "caliber"
-
 config :octopus, :ring_central,
-  base_url: "https://platform.devtest.ringcentral.com/restapi/",
+  base_url: "https://platform.devtest.ringcentral.com/restapi/v1.0/",
   client_id: "fake_client_id",
   secret: "fake_secret",
   username: "fake_user",

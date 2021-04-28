@@ -8,14 +8,6 @@ config :octopus, Octopus.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
-config :octopus, Octopus.Repo.ListingsPortal,
-  username: "postgres",
-  password: "postgres",
-  database: "api_edge_development",
-  hostname: "localhost",
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
-
 config :octopus, OctopusWeb.Endpoint,
   http: [port: 4000],
   debug_errors: true,
