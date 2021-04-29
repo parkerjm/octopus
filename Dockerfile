@@ -31,7 +31,10 @@ RUN mix release
 
 FROM base AS final
 
+ENV ERL_AFLAGS -kernel shell_history enabled
+
 COPY --from=builder /app/_build/prod/rel/octopus .
+COPY --from=builder /app/.iex.exs .
 
 EXPOSE ${PORT}
 CMD ["bin/octopus", "start"]
