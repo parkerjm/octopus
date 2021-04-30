@@ -14,11 +14,11 @@ unique_opts = [
 shared_crontab = [
   {"*/15 * * * *", Octopus.Connector.Delighted, max_attempts: 1, unique: unique_opts},
   {"*/15 * * * *", Octopus.Connector.RingCentral, max_attempts: 1, unique: unique_opts},
-  {"*/30 * * * *", Octopus.Connector.Hubspot, max_attempts: 1, unique: unique_opts}
 ]
 
 production_crontab = [
   {"*/20 * * * *", Octopus.Connector.Domo, max_attempts: 1, unique: unique_opts}
+  {"*/30 * * * *", Octopus.Connector.Hubspot, max_attempts: 1, unique: unique_opts}
 ]
 
 crontab =
