@@ -8,6 +8,7 @@ defmodule Octopus.ConnectorHistory do
     field(:latest_record_time_unix, :integer, default: 0)
     field(:latest_record_date, :date)
     field(:latest_record_datetime, :utc_datetime)
+    field(:state, :map)
 
     timestamps()
   end
@@ -19,7 +20,8 @@ defmodule Octopus.ConnectorHistory do
       :connector,
       :latest_record_time_unix,
       :latest_record_date,
-      :latest_record_datetime
+      :latest_record_datetime,
+      :state
     ])
     |> validate_required([:connector])
     |> validate_length(:connector, min: 2, max: 250)
@@ -33,17 +35,21 @@ defmodule Octopus.ConnectorHistory do
 
   @spec update_latest_record_time_unix(module(), integer()) :: %__MODULE__{}
   def update_latest_record_time_unix(connector, latest_record_time_unix) do
-    update_timestamp(connector, :latest_record_time_unix, latest_record_time_unix)
+    upsert_field(connector, :latest_record_time_unix, latest_record_time_unix)
   end
 
   @spec update_latest_record_date(module(), Date.t()) :: %__MODULE__{}
   def update_latest_record_date(connector, latest_record_date) do
-    update_timestamp(connector, :latest_record_date, latest_record_date)
+    upsert_field(connector, :latest_record_date, latest_record_date)
   end
 
   @spec update_latest_record_datetime(module(), DateTime.t()) :: %__MODULE__{}
   def update_latest_record_datetime(connector, latest_record_datetime) do
-    update_timestamp(connector, :latest_record_datetime, latest_record_datetime)
+    upsert_field(connector, :latest_record_datetime, latest_record_datetime)
+  end
+
+  def update_state(connector, state) do
+    upsert_field(connector, :state, state)
   end
 
   @spec cc_epoch_date() :: Date.t()
@@ -52,10 +58,10 @@ defmodule Octopus.ConnectorHistory do
   @spec cc_epoch_datetime() :: DateTime.t()
   def cc_epoch_datetime, do: ~U[2015-01-01 00:00:00.000000Z]
 
-  defp update_timestamp(connector, field, timestamp) do
+  defp upsert_field(connector, field, value) do
     connector
     |> get_history()
-    |> changeset(%{:connector => to_string(connector), field => timestamp})
+    |> changeset(%{:connector => to_string(connector), field => value})
     |> Repo.insert!(conflict_target: :connector, on_conflict: {:replace, [field]})
   end
 end

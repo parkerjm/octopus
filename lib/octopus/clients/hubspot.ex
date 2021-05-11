@@ -1,7 +1,8 @@
 defmodule Octopus.Client.Hubspot do
   defmodule Behaviour do
-    @callback store_procurement_data(list(map())) :: list(map())
     @callback get_contacts(number(), number()) :: list(map())
+    @callback get_email_events(String.t(), keyword()) :: map()
+    @callback store_procurement_data(list(map())) :: list(map())
   end
 
   @behaviour Behaviour
@@ -12,9 +13,11 @@ defmodule Octopus.Client.Hubspot do
   @contact_update_timestamp_field "lastmodifieddate"
 
   @impl true
-  def get_contacts(from_date_unix \\ 0, per_page \\ 100) do
+  def get_contacts(from_unix_timestamp \\ 0, per_page \\ 100) do
     Logger.info(
-      "Client.Hubspot: Getting contact records from timestamp #{from_date_unix} with #{per_page} per page"
+      "Client.Hubspot: Getting contact records from timestamp #{from_unix_timestamp} with #{
+        per_page
+      } per page"
     )
 
     {:ok, %Tesla.Env{status: 200, body: %{"results" => contacts}}} =
@@ -26,7 +29,7 @@ defmodule Octopus.Client.Hubspot do
             %{
               filters: [
                 %{
-                  value: from_date_unix,
+                  value: from_unix_timestamp,
                   propertyName: @contact_update_timestamp_field,
                   operator: "GT"
                 }
@@ -42,6 +45,31 @@ defmodule Octopus.Client.Hubspot do
       )
 
     contacts
+  end
+
+  @impl true
+  def get_email_events(event_type, opts) do
+    Logger.info(
+      "Client.Hubspot: Getting email events of type #{event_type} from timestamp #{
+        opts[:from_unix_timestamp]
+      } and offset #{opts[:offset]} with #{opts[:per_page]} per page"
+    )
+
+    {:ok, %Tesla.Env{status: 200, body: %{"offset" => offset, "events" => events}}} =
+      get(
+        client(),
+        "/email/public/v1/events",
+        query: [
+          hapikey: api_key(),
+          eventType: event_type,
+          startTimestamp: opts[:from_unix_timestamp] || 0,
+          limit: opts[:per_page] || 1000,
+          offset: opts[:offset]
+        ],
+        opts: [adapter: [recv_timeout: 30_000]]
+      )
+
+    %{offset: offset, events: events}
   end
 
   @impl true
@@ -67,7 +95,13 @@ defmodule Octopus.Client.Hubspot do
     middleware = [
       {Tesla.Middleware.BaseUrl, base_url()},
       Tesla.Middleware.JSON,
-      Tesla.Middleware.Logger
+      Tesla.Middleware.Logger,
+      {Tesla.Middleware.Retry,
+       should_retry: fn
+         {:ok, %{status: status}} when status in [500, 502, 503] -> true
+         {:ok, _} -> false
+         {:error, _} -> true
+       end}
     ]
 
     Tesla.client(middleware)

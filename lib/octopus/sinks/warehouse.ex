@@ -52,7 +52,7 @@ defmodule Octopus.Sink.Warehouse do
     columns
     |> Enum.map(&"#{&1} varchar(#{CoercedString.max_length()})")
     |> Enum.join(",")
-    |> (&Repo.query!("CREATE TABLE #{table} (#{&1});")).()
+    |> (&Repo.query!("CREATE TABLE IF NOT EXISTS #{table} (#{&1});")).()
 
     Repo.query!("CREATE INDEX IF NOT EXISTS idx_#{table}_id ON #{table}(id)")
   end
@@ -61,7 +61,7 @@ defmodule Octopus.Sink.Warehouse do
 
   defp create_columns(table, columns) do
     columns
-    |> Enum.map(&"ADD COLUMN #{&1} varchar(#{CoercedString.max_length()})")
+    |> Enum.map(&"ADD COLUMN IF NOT EXISTS \"#{&1}\" varchar(#{CoercedString.max_length()})")
     |> Enum.join(",")
     |> (&Repo.query!("ALTER TABLE #{table} #{&1};")).()
   end
