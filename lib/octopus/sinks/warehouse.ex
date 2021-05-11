@@ -50,7 +50,7 @@ defmodule Octopus.Sink.Warehouse do
 
   defp create_table(table, columns) do
     columns
-    |> Enum.map(&"#{&1} varchar(#{CoercedString.max_length()})")
+    |> Enum.map(&"\"#{&1}\" varchar(#{CoercedString.max_length()})")
     |> Enum.join(",")
     |> (&Repo.query!("CREATE TABLE IF NOT EXISTS #{table} (#{&1});")).()
 

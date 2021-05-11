@@ -61,7 +61,8 @@ defmodule Octopus.Sink.WarehouseTest do
         version: "1",
         crazy_long_field_name_why_in_the_world_did_someone_make_a_field: "who knows",
         aaaaaaaaaaaaaaaaaaaaaaaa_bbbbbbbbbbbbbbbbbbbbbb_cccccccccccccccc:
-          "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        from: "some guy"
       }
 
       assert actual_attributes == expected_attributes
@@ -137,7 +138,8 @@ defmodule Octopus.Sink.WarehouseTest do
         version: "1",
         crazy_long_field_name_why_in_the_world_did_someone_make_a_field: "who knows",
         aaaaaaaaaaaaaaaaaaaaaaaa_bbbbbbbbbbbbbbbbbbbbbb_cccccccccccccccc:
-          "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        from: "some guy"
       }
 
       assert actual_attributes == expected_attributes
@@ -214,7 +216,8 @@ defmodule Octopus.Sink.WarehouseTest do
                 "ddddddddddddddddddddddddddddddddddddd": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             }
-          }
+          },
+          "from": "some guy"
         }
       ]
     """
