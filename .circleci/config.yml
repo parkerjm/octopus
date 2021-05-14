@@ -124,11 +124,21 @@ workflows:
             - build
 
       # branch build
-      - migrate_staging_db:
-          name: Migrate Staging Database for Branch
+      - deploy_staging_hold:
+          name: Deploy Branch to Staging
+          type: approval
           requires:
             - build_image
             - build_db_migrator_image
+          filters:
+            branches:
+              ignore:
+                - master
+                - /hotfix/
+      - migrate_staging_db:
+          name: Migrate Staging Database for Branch
+          requires:
+            - Deploy Branch to Staging
           filters:
             branches:
               ignore:
@@ -151,21 +161,11 @@ workflows:
       ###
 
       # master build
-      - deploy_staging_hold:
-          name: Deploy to Staging
-          type: approval
-          requires:
-            - build_image
-            - build_db_migrator_image
-          filters:
-            branches:
-              only:
-                - master
-                - /hotfix/
       - migrate_staging_db:
           name: Migrate Staging Database
           requires:
-            - Deploy to Staging
+            - build_image
+            - build_db_migrator_image
           filters:
             branches:
               only:
