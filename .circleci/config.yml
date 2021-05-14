@@ -122,16 +122,55 @@ workflows:
       - build_db_migrator_image:
           requires:
             - build
-      - deploy_staging:
-          name: Deploy to staging
+
+      # branch build
+      - migrate_staging_db:
+          name: Migrate Staging Database for Branch
+          requires:
+            - build_image
+            - build_db_migrator_image
+          filters:
+            branches:
+              ignore:
+                - master
+                - /hotfix/
+      - aws-eks/update-container-image:
+          name: Staging Branch Deploy
+          requires:
+            - Migrate Staging Database for Branch
+          aws-region: us-east-2
+          cluster-name: staging
+          resource-name: deployment.v1.apps/octopus-staging
+          container-image-updates: octopus=crownandcaliber/octopus:$CIRCLE_SHA1
+          record: true
+          filters:
+            branches:
+              ignore:
+                - master
+                - /hotfix/
+      ###
+
+      # master build
+      - deploy_staging_hold:
+          name: Deploy to Staging
           type: approval
           requires:
             - build_image
             - build_db_migrator_image
+          filters:
+            branches:
+              only:
+                - master
+                - /hotfix/
       - migrate_staging_db:
           name: Migrate Staging Database
           requires:
-            - Deploy to staging
+            - Deploy to Staging
+          filters:
+            branches:
+              only:
+                - master
+                - /hotfix/
       - aws-eks/update-container-image:
           name: Staging Deploy
           requires:
@@ -141,6 +180,13 @@ workflows:
           resource-name: deployment.v1.apps/octopus-staging
           container-image-updates: octopus=crownandcaliber/octopus:$CIRCLE_SHA1
           record: true
+          filters:
+            branches:
+              only:
+                - master
+                - /hotfix/
+      ###
+
       - deploy_prod:
           name: Deploy to prod
           type: approval
