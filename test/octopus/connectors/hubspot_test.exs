@@ -30,11 +30,17 @@ defmodule Octopus.Connector.HubspotTest do
         |> DateTime.truncate(:second)
         |> DateTime.to_unix(:millisecond)
         |> (&%{
-              "email_events" => %{
+              "timestamps" => %{
                 "SENT" => &1,
                 "OPEN" => &1 + 1,
                 "CLICK" => &1 + 2,
                 "STATUSCHANGE" => &1 + 3
+              },
+              "offsets" => %{
+                "SENT" => "sent_offset",
+                "OPEN" => "open_offset",
+                "CLICK" => "click_offset",
+                "STATUSCHANGE" => "status_change_offset"
               }
             }).()
 
@@ -43,16 +49,46 @@ defmodule Octopus.Connector.HubspotTest do
         state: state
       })
 
-      {:ok, event_timestamps: state["email_events"]}
+      {:ok, state: state}
     end
 
-    test "connector pulls surveys from last update time", %{
-      event_timestamps: event_timestamps
+    test "connector pulls email events from last update time", %{
+      state: %{"timestamps" => timestamps}
     } do
       Enum.each(Hubspot.email_events(), fn event ->
         expect(HubspotMock, :get_email_events, fn ^event, opts ->
-          assert opts[:from_timestamp] == event_timestamps[event]
-          []
+          assert opts[:from_timestamp] == timestamps[event]
+          %{offset: nil, events: []}
+        end)
+      end)
+
+      Hubspot.perform(%{})
+    end
+
+    test "connector stores intermediate offset and uses it to fetch email events", %{
+      state: %{"offsets" => offsets}
+    } do
+      Enum.each(Hubspot.email_events(), fn event ->
+        expected_intermediate_offset = "offset#{Enum.random(0..10000)}"
+
+        expect(HubspotMock, :get_email_events, fn ^event, opts ->
+          assert opts[:offset] == offsets[event]
+
+          %{
+            offset: expected_intermediate_offset,
+            events: [
+              %{"type" => "CLICK", "created" => 1234}
+            ]
+          }
+        end)
+
+        expect(HubspotMock, :get_email_events, fn ^event, opts ->
+          %ConnectorHistory{state: %{"offsets" => offsets}} =
+            ConnectorHistory.get_history(Hubspot)
+
+          assert offsets[event] == expected_intermediate_offset
+          assert opts[:offset] == expected_intermediate_offset
+
           %{offset: nil, events: []}
         end)
       end)
@@ -69,6 +105,36 @@ defmodule Octopus.Connector.HubspotTest do
       end)
 
       Hubspot.perform(%{})
+    end
+
+    test "wipes stored offset when process finishes" do
+      Enum.each(Hubspot.email_events(), fn event ->
+        HubspotMock
+        |> expect_get_email_events(event, 1)
+        |> expect_get_email_events(event, 0)
+      end)
+
+      %ConnectorHistory{state: %{"offsets" => offsets_before}} =
+        ConnectorHistory.get_history(Hubspot)
+
+      assert offsets_before == %{
+               "CLICK" => "click_offset",
+               "OPEN" => "open_offset",
+               "SENT" => "sent_offset",
+               "STATUSCHANGE" => "status_change_offset"
+             }
+
+      Hubspot.perform(%{})
+
+      %ConnectorHistory{state: %{"offsets" => offsets_after}} =
+        ConnectorHistory.get_history(Hubspot)
+
+      assert offsets_after == %{
+               "CLICK" => nil,
+               "OPEN" => nil,
+               "SENT" => nil,
+               "STATUSCHANGE" => nil
+             }
     end
 
     test "stores all pages in correct table" do
@@ -100,7 +166,7 @@ defmodule Octopus.Connector.HubspotTest do
 
       Hubspot.perform(%{})
 
-      %ConnectorHistory{state: %{"email_events" => new_event_timestamps}} =
+      %ConnectorHistory{state: %{"timestamps" => new_event_timestamps}} =
         ConnectorHistory.get_history(Hubspot)
 
       Enum.each(Hubspot.email_events(), fn event ->
@@ -109,7 +175,7 @@ defmodule Octopus.Connector.HubspotTest do
     end
 
     test "uses existing timestamp when no results are returned", %{
-      event_timestamps: event_timestamps
+      state: %{"timestamps" => timestamps}
     } do
       Enum.each(Hubspot.email_events(), fn event ->
         expect_get_email_events(HubspotMock, event, 0)
@@ -117,7 +183,7 @@ defmodule Octopus.Connector.HubspotTest do
 
       Hubspot.perform(%{})
 
-      assert %ConnectorHistory{state: %{"email_events" => ^event_timestamps}} =
+      assert %ConnectorHistory{state: %{"timestamps" => ^timestamps}} =
                ConnectorHistory.get_history(Hubspot)
     end
   end

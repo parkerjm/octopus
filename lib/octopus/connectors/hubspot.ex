@@ -4,6 +4,7 @@ defmodule Octopus.Connector.Hubspot do
   alias Octopus.{ConnectorHistory, Client.Hubspot}
 
   @contacts_per_page 100
+  @default_state %{"timestamps" => %{}, "offsets" => %{}}
   @email_events_per_page 1000
   @email_events ["SENT", "OPEN", "CLICK", "STATUSCHANGE"]
 
@@ -28,58 +29,66 @@ defmodule Octopus.Connector.Hubspot do
     Task.await_many(tasks, :infinity)
   end
 
-  defp get_email_events(nil), do: get_email_events(%{"email_events" => %{}})
+  defp get_email_events(nil), do: get_email_events(@default_state)
 
-  defp get_email_events(%{"email_events" => timestamps} = state) do
+  defp get_email_events(state) do
     Enum.map(@email_events, fn event_type ->
-      latest_event_timestamp = fetch_email_events(event_type, timestamps[event_type])
+      from_timestamp = get_in(state, ["timestamps", event_type])
+      offset = get_in(state, ["offsets", event_type])
 
-      __MODULE__
-      |> ConnectorHistory.get_history()
-      |> (&(Map.get(&1, :state) || state)).()
-      |> put_in(["email_events", event_type], latest_event_timestamp)
-      |> (&ConnectorHistory.update_state(__MODULE__, &1)).()
+      event_type
+      |> fetch_email_events(from_timestamp, offset)
+      |> persist_timestamp(event_type)
+
+      persist_offset(nil, event_type)
     end)
   end
 
-  defp fetch_email_events(event_type, from_timestamp) do
-    %{offset: offset, events: email_events} =
-      Hubspot.get_email_events(event_type,
-        from_timestamp: from_timestamp,
-        per_page: @email_events_per_page
-      )
-
-    case email_events do
-      [] ->
-        from_timestamp
-
-      nil ->
-        from_timestamp
-
-      email_events = [_ | _] ->
-        latest_event_timestamp = persist_events(email_events)
-        Process.sleep(timeout_between_requests())
-        fetch_email_events(event_type, from_timestamp, latest_event_timestamp, offset)
-    end
-  end
-
-  defp fetch_email_events(event_type, from_timestamp, latest_event_timestamp, offset) do
-    %{offset: offset, events: email_events} =
+  defp fetch_email_events(
+         event_type,
+         from_timestamp,
+         offset,
+         latest_event_timestamp \\ nil
+       ) do
+    %{offset: next_offset, events: email_events} =
       Hubspot.get_email_events(event_type,
         from_timestamp: from_timestamp,
         per_page: @email_events_per_page,
         offset: offset
       )
 
-    case(email_events) do
+    case email_events do
       [] ->
-        latest_event_timestamp
+        latest_event_timestamp || from_timestamp
 
-      [_ | _] ->
-        persist_events(email_events)
-        Process.sleep(timeout_between_requests())
-        fetch_email_events(event_type, from_timestamp, latest_event_timestamp, offset)
+      email_events = [_ | _] ->
+        with timestamp <- persist_events(email_events),
+             :ok <- persist_offset(next_offset, event_type),
+             latest_event_timestamp <- latest_event_timestamp || timestamp do
+          Process.sleep(timeout_between_requests())
+          fetch_email_events(event_type, from_timestamp, next_offset, latest_event_timestamp)
+        end
     end
+  end
+
+  defp persist_timestamp(timestamp, event_type) do
+    __MODULE__
+    |> ConnectorHistory.get_history()
+    |> (&(Map.get(&1, :state) || @default_state)).()
+    |> put_in(["timestamps", event_type], timestamp)
+    |> (&ConnectorHistory.update_state(__MODULE__, &1)).()
+
+    :ok
+  end
+
+  defp persist_offset(offset, event_type) do
+    __MODULE__
+    |> ConnectorHistory.get_history()
+    |> (&(Map.get(&1, :state) || @default_state)).()
+    |> put_in(["offsets", event_type], offset)
+    |> (&ConnectorHistory.update_state(__MODULE__, &1)).()
+
+    :ok
   end
 
   defp persist_events([]), do: nil
