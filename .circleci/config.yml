@@ -88,10 +88,13 @@ jobs:
       - run:
           name: migrate staging database
           command: |
+            git clone  git@github.com:crownandcaliber/migrate_db_script.git ~/migratescript
             IMAGE_TAG=$CIRCLE_SHA1 \
             APP_ENV=staging \
             JOB=octopus-$APP_ENV-db-migration \
-            ./.circleci/run_migration.sh
+            APP_NAME=octopus \
+            IMAGE_NAME=octopus-db-migration \
+            ~/migratescript/run_migration.sh elixir
 
   migrate_production_db:
     docker:
@@ -105,10 +108,13 @@ jobs:
       - run:
           name: migrate production database
           command: |
+            git clone  git@github.com:crownandcaliber/migrate_db_script.git ~/migratescript
             IMAGE_TAG=$CIRCLE_SHA1 \
             APP_ENV=production \
             JOB=octopus-$APP_ENV-db-migration \
-            ./.circleci/run_migration.sh
+            APP_NAME=octopus \
+            IMAGE_NAME=octopus-db-migration \
+            ~/migratescript/run_migration.sh elixir
 
 ###########################################################
 
