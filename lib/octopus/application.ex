@@ -26,6 +26,12 @@ defmodule Octopus.Application do
     Supervisor.start_link(children, opts)
   end
 
+  def start_phase(:delete_orphaned_jobs, _, _) do
+    import Ecto.Query
+    Octopus.Repo.delete_all(from j in Oban.Job, where: j.state == "executing")
+    :ok
+  end
+
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do

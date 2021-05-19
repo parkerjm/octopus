@@ -20,6 +20,7 @@ defmodule Octopus.MixProject do
   def application do
     [
       mod: {Octopus.Application, []},
+      start_phases: [{:delete_orphaned_jobs, []}],
       extra_applications: [:logger, :runtime_tools]
     ]
   end
