@@ -19,7 +19,6 @@ if config_env() == :prod do
     database: System.fetch_env!("DATABASE_NAME"),
     hostname: System.fetch_env!("DATABASE_HOST"),
     pool_size: String.to_integer(System.get_env("DATABASE_POOL_SIZE") || "10"),
-    pool_timeout: 60_000,
     timeout: 60_000
 
   unique_opts = [
