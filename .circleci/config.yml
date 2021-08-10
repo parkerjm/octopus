@@ -122,18 +122,15 @@ workflows:
   build_and_deploy:
     jobs:
       - build
-      - build_image:
-          requires:
-            - build
-      - build_db_migrator_image:
-          requires:
-            - build
+      - build_image
+      - build_db_migrator_image
 
       # branch build
       - deploy_staging_hold:
           name: Deploy Branch to Staging
           type: approval
           requires:
+            - build
             - build_image
             - build_db_migrator_image
           filters:
@@ -170,6 +167,7 @@ workflows:
       - migrate_staging_db:
           name: Migrate Staging Database
           requires:
+            - build
             - build_image
             - build_db_migrator_image
           filters:
@@ -197,6 +195,7 @@ workflows:
           name: Deploy to prod
           type: approval
           requires:
+            - build
             - build_image
             - build_db_migrator_image
           filters:
